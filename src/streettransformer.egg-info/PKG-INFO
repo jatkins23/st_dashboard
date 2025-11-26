@@ -1,0 +1,167 @@
+Metadata-Version: 2.4
+Name: streettransformer
+Version: 0.1.0
+Summary: Vector embeddings for street imagery analysis with DuckDB and FAISS
+Author: Jon Atkins
+License: MIT
+Project-URL: Homepage, https://github.com/jatkins23/st_dashboard
+Project-URL: Repository, https://github.com/jatkins23/st_dashboard
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: dash>=3.3.0
+Requires-Dist: duckdb>=1.4.2
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: pandas>=2.0.0
+Requires-Dist: scikit-learn>=1.3.0
+Provides-Extra: faiss
+Requires-Dist: faiss-cpu>=1.13.0; extra == "faiss"
+Provides-Extra: cli
+Requires-Dist: open-clip-torch>=3.2.0; extra == "cli"
+Requires-Dist: torch>=2.0.0; extra == "cli"
+Requires-Dist: Pillow<11.0.0,>=9.0.0; extra == "cli"
+Requires-Dist: tqdm>=4.65.0; extra == "cli"
+Requires-Dist: click>=8.1.0; extra == "cli"
+Provides-Extra: dashboard
+Requires-Dist: plotly>=5.17.0; extra == "dashboard"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: black>=23.7.0; extra == "dev"
+Requires-Dist: ruff>=0.0.280; extra == "dev"
+Requires-Dist: mypy>=1.4.0; extra == "dev"
+Provides-Extra: all
+Requires-Dist: streettransformer[cli,dashboard,faiss]; extra == "all"
+Dynamic: license-file
+
+# StreetTransformer
+
+Vector embeddings for street imagery analysis with DuckDB and FAISS.
+
+## Features
+
+- **DuckDB Storage**: Efficient vector storage with VSS extension
+- **FAISS Indexing**: Fast approximate nearest neighbor search
+- **PCA Whitening**: Improved retrieval quality through whitening transformation
+- **NPZ Caching**: Fast embedding loading with compressed caches
+- **CLI Tools**: Command-line interface for querying and generating embeddings
+
+## Installation
+
+```bash
+# Basic installation
+pip install -e .
+
+# With FAISS support
+pip install -e ".[faiss]"
+
+# With CLI tools
+pip install -e ".[cli]"
+
+# Everything
+pip install -e ".[all]"
+```
+
+## Quick Start
+
+### Using with existing st_preprocessing database
+
+```python
+from streettransformer import Config, EmbeddingDB
+
+# Point to your st_preprocessing database
+config = Config(
+    database_path="/Users/jon/code/st_preprocessing/data.db",
+    universe_name="lion"
+)
+
+# Query embeddings
+db = EmbeddingDB(config)
+import numpy as np
+
+query_vector = np.random.rand(512)  # Your query embedding
+results = db.search_similar(query_vector, limit=10, year=2020)
+print(results)
+```
+
+### Fast search with FAISS
+
+```python
+from streettransformer import Config, FAISSIndexer
+
+config = Config(database_path="data.db", universe_name="lion")
+indexer = FAISSIndexer(config)
+
+# Build index (first time only)
+indexer.build_index(year=2020, index_type='hnsw')
+
+# Search
+results = indexer.search(query_vector, k=10, year=2020)
+```
+
+### Whitening for better retrieval
+
+```python
+from streettransformer import Config, WhiteningTransform
+
+config = Config(database_path="data.db", universe_name="lion")
+whiten = WhiteningTransform(config)
+
+# Compute statistics (first time only)
+whiten.compute_statistics(year=2020)
+
+# Rerank results
+reranked = whiten.rerank_results(
+    query_vector=query_vector,
+    results=results,
+    year=2020,
+    top_k=10
+)
+```
+
+## Architecture
+
+```
+streettransformer/
+├── config.py          # Configuration
+├── database.py        # DuckDB connection
+├── embedding_db.py    # Core vector storage
+├── npz_cache.py       # NPZ caching
+├── faiss_index.py     # FAISS indexing
+└── whitening.py       # PCA whitening
+```
+
+## Database Schema
+
+The package expects these tables in your DuckDB database:
+
+```sql
+{universe}.image_embeddings (
+    location_id BIGINT,
+    location_key VARCHAR,
+    year INTEGER,
+    image_path VARCHAR,
+    embedding FLOAT[512],
+    PRIMARY KEY (location_key, year)
+)
+
+{universe}.change_vectors (
+    location_id BIGINT,
+    location_key VARCHAR,
+    year_from INTEGER,
+    year_to INTEGER,
+    delta FLOAT[512],
+    PRIMARY KEY (location_key, year_from, year_to)
+)
+```
+
+## License
+
+MIT

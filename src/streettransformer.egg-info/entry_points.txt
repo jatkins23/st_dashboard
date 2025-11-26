@@ -1,0 +1,3 @@
+[console_scripts]
+st-generate = streettransformer.cli.generate:main
+st-query = streettransformer.cli.query:main
