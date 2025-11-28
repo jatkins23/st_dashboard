@@ -28,6 +28,30 @@ pip install -e ".[all]"
 
 ## Quick Start
 
+### Environment Variable Setup (Optional)
+
+Set the `ST_DATABASE_PATH` environment variable to avoid specifying `--db` every time. Supports both local and remote databases:
+
+```bash
+# Local database
+export ST_DATABASE_PATH=/path/to/your/core.ddb
+
+# Remote database (HTTP/HTTPS) - read-only
+export ST_DATABASE_PATH=https://example.com/data.ddb
+
+# S3 bucket
+export ST_DATABASE_PATH=s3://my-bucket/data/core.ddb
+
+# Or copy .env.example to .env and edit it
+cp .env.example .env
+```
+
+Now you can run commands without `--db`:
+```bash
+python -m streettransformer.cli.query --universe lion --location 12345 --year 2020
+python scripts/build_faiss_indexes.py --universe lion --year 2020 --index-type hnsw
+```
+
 ### Using with existing st_preprocessing database
 
 ```python
@@ -38,6 +62,10 @@ config = Config(
     database_path="/Users/jon/code/st_preprocessing/data.db",
     universe_name="lion"
 )
+
+# Or use environment variable
+# export ST_DATABASE_PATH=/Users/jon/code/st_preprocessing/data.db
+config = Config(universe_name="lion")  # Will read from ST_DATABASE_PATH
 
 # Query embeddings
 db = EmbeddingDB(config)

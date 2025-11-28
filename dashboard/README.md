@@ -30,7 +30,7 @@ dashboard/
 
 ### ✅ Backend (Complete)
 - **`backend/search.py`**: All search logic using `streettransformer`
-  - `search_by_location()` - Location similarity with FAISS/whitening support
+  - `search_by_state()` - State similarity with FAISS/whitening support
   - `search_by_text()` - Text-to-image search with CLIP
   - `search_change_patterns()` - Change detection
   - `get_embedding_stats()` - Statistics
@@ -57,7 +57,7 @@ To complete the modular refactor:
 ### 1. Frontend Tabs (Extract from original)
 ```python
 # frontend/tabs/location.py
-def create_location_search_tab():
+def create_state_search_tab():
     """Location similarity search UI."""
     # Lines 414-488 from original
 

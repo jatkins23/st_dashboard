@@ -3,3 +3,13 @@ faiss_indexes
 examples
 cli
 LICENSE
+data
+__pycache__
+*.pyc
+.env
+
+*.svg
+*.png
+*.pyc
+*__pycache__/
+*.egg-info

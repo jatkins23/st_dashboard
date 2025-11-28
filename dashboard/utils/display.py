@@ -2,9 +2,44 @@
 
 import logging
 import pandas as pd
+from pathlib import Path
+from PIL import Image
+from io import BytesIO
+import base64
 
 logger = logging.getLogger(__name__)
 
+def encode_image_to_base64(image_path: Path, max_width: int = 400) -> str:
+    """Convert image to base64 string for embedding in HTML.
+
+    Args:
+        image_path: Path to image file
+        max_width: Maximum width for resizing
+
+    Returns:
+        Base64 encoded image string
+    """
+    try:
+        if not image_path.exists():
+            return None
+
+        img = Image.open(image_path)
+
+        # Resize if too large
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_height = int(img.height * ratio)
+            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+
+        return f"data:image/png;base64,{img_str}"
+    except Exception as e:
+        logger.error(f"Error encoding image {image_path}: {e}")
+        return None
 
 def enrich_results_with_streets(results: pd.DataFrame, db_connection, universe_name: str) -> pd.DataFrame:
     """Enrich results with street names from locations table.
@@ -18,6 +53,7 @@ def enrich_results_with_streets(results: pd.DataFrame, db_connection, universe_n
         DataFrame with additional_streets column
     """
     if results.empty:
+        print('results empty')
         return results
 
     try:
@@ -40,11 +76,15 @@ def enrich_results_with_streets(results: pd.DataFrame, db_connection, universe_n
             enriched = con.execute(f"""
                 SELECT
                     {col_list},
+                    l.street1,
+                    l.street2,
                     l.additional_streets
                 FROM _temp_results r
                 LEFT JOIN {universe_name}.locations l
                     ON r.location_id = l.location_id
             """).df()
+
+            print(enriched)
 
             return enriched
     except Exception as e:

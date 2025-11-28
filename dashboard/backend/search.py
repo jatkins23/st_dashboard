@@ -1,14 +1,12 @@
 """Backend search logic using streettransformer."""
 
 import logging
-import numpy as np
 import pandas as pd
 
-from ..utils.encoding import encode_text_query
-from ..utils.enrichment import enrich_results_with_streets, enrich_change_results_with_images
+from ..utils.display import enrich_results_with_streets, enrich_change_results_with_images
+from streettransformer import StateLocationQuery, StateTextQuery, ChangeLocationQuery, CLIPEncoder
 
 logger = logging.getLogger(__name__)
-
 
 def search_by_location(
     config,
@@ -21,7 +19,7 @@ def search_by_location(
     use_faiss: bool = True,
     use_whitening: bool = True
 ) -> pd.DataFrame:
-    """Search for similar locations.
+    """Search for similar locations (thin wrapper around StateLocationQuery).
 
     Args:
         config: StreetTransformer Config object
@@ -35,58 +33,25 @@ def search_by_location(
         use_whitening: Use whitening reranking
 
     Returns:
-        DataFrame with search results
+        DataFrame with search results enriched with street names
     """
     try:
-        # Get embedding for query location
-        with db_connection_func() as con:
-            query_df = con.execute(f"""
-                SELECT location_id, location_key, year, image_path, embedding
-                FROM {config.universe_name}.image_embeddings
-                WHERE location_id = {location_id}
-                    AND year = {year}
-                    AND embedding IS NOT NULL
-            """).df()
+        # Create and execute query
+        query = StateLocationQuery(
+            location_id=location_id,
+            year=year,
+            target_year=target_year,
+            config=config,
+            db=db,
+            db_connection_func=db_connection_func,
+            limit=limit,
+            use_faiss=use_faiss,
+            use_whitening=use_whitening
+        )
 
-        if query_df.empty:
-            logger.error(f"No embedding found for location {location_id} year {year}")
-            return pd.DataFrame()
+        results = query.execute()
 
-        query_vec = np.array(query_df.iloc[0]['embedding'])
-
-        # Search using FAISS if requested
-        if use_faiss:
-            from streettransformer import FAISSIndexer
-            indexer = FAISSIndexer(config)
-            results = indexer.search(
-                query_vector=query_vec,
-                k=limit + 1,
-                year=target_year if target_year else year
-            )
-        else:
-            # Use database search
-            results = db.search_similar(
-                query_vector=query_vec,
-                limit=limit + 1,
-                year=target_year
-            )
-
-        # Remove self from results
-        results = results[results['location_id'] != location_id]
-        results = results.head(limit)
-
-        # Apply whitening reranking if requested
-        if use_whitening and not results.empty:
-            from streettransformer import WhiteningTransform
-            whiten = WhiteningTransform(config)
-            results = whiten.rerank_results(
-                query_vector=query_vec,
-                results=results,
-                year=target_year if target_year else year,
-                top_k=limit
-            )
-
-        # Enrich with street names
+        # Dashboard-specific enrichment: add street names
         results = enrich_results_with_streets(results, db_connection_func, config.universe_name)
 
         return results
@@ -102,9 +67,12 @@ def search_by_text(
     db_connection_func,
     text_query: str,
     year: int | None = None,
-    limit: int = 20
+    limit: int = 20,
+    use_faiss: bool = False,
+    use_whitening: bool = False,
+    clip_encoder=None
 ) -> pd.DataFrame:
-    """Search for images matching text description.
+    """Search for images matching text description (thin wrapper around StateTextQuery).
 
     Args:
         config: StreetTransformer Config object
@@ -113,23 +81,34 @@ def search_by_text(
         text_query: Text description
         year: Optional year filter
         limit: Number of results
+        use_faiss: Use FAISS for search
+        use_whitening: Use whitening reranking
+        clip_encoder: Optional CLIPEncoder instance (created if not provided)
 
     Returns:
-        DataFrame with search results
+        DataFrame with search results enriched with street names
     """
     try:
-        # Encode text query
-        logger.info(f"Encoding text query: '{text_query}'")
-        query_embedding = encode_text_query(text_query)
+        # Create encoder if not provided (for backward compatibility)
+        if clip_encoder is None:
+            clip_encoder = CLIPEncoder()
 
-        # Search database
-        results = db.search_similar(
-            query_vector=query_embedding,
+        # Create and execute query
+        query = StateTextQuery(
+            text_query=text_query,
+            year=year,
+            config=config,
+            db=db,
+            db_connection_func=db_connection_func,
             limit=limit,
-            year=year
+            use_faiss=use_faiss,
+            use_whitening=use_whitening,
+            clip_encoder=clip_encoder
         )
 
-        # Enrich with street names
+        results = query.execute()
+
+        # Dashboard-specific enrichment: add street names
         results = enrich_results_with_streets(results, db_connection_func, config.universe_name)
 
         return results
@@ -148,7 +127,7 @@ def search_change_patterns(
     year_to: int,
     limit: int = 20
 ) -> pd.DataFrame:
-    """Search for locations with similar change patterns.
+    """Search for locations with similar change patterns (thin wrapper around ChangeLocationQuery).
 
     Args:
         config: StreetTransformer Config object
@@ -160,49 +139,23 @@ def search_change_patterns(
         limit: Number of results
 
     Returns:
-        DataFrame with search results
+        DataFrame with search results enriched with image paths
     """
     try:
-        # Get embeddings for reference location
-        with db_connection_func() as con:
-            location_df = con.execute(f"""
-                SELECT location_id, location_key, year, embedding
-                FROM {config.universe_name}.image_embeddings
-                WHERE location_id = {location_id}
-                    AND year IN ({year_from}, {year_to})
-                    AND embedding IS NOT NULL
-            """).df()
-
-        emb_from = location_df[location_df['year'] == year_from]
-        emb_to = location_df[location_df['year'] == year_to]
-
-        if emb_from.empty or emb_to.empty:
-            logger.error(f"Missing embeddings for location {location_id}")
-            return pd.DataFrame()
-
-        # Compute query delta
-        vec_from = np.array(emb_from.iloc[0]['embedding'])
-        vec_to = np.array(emb_to.iloc[0]['embedding'])
-        query_delta = vec_to - vec_from
-
-        # Normalize
-        norm = np.linalg.norm(query_delta)
-        if norm > 0:
-            query_delta = query_delta / norm
-
-        # Search for similar changes
-        results = db.search_change_vectors(
-            query_delta=query_delta,
-            limit=limit + 1,
-            year_from=year_from,
-            year_to=year_to
+        # Create and execute query
+        query = ChangeLocationQuery(
+            location_id=location_id,
+            start_year=year_from,
+            end_year=year_to,
+            config=config,
+            db=db,
+            db_connection_func=db_connection_func,
+            limit=limit
         )
 
-        # Remove self
-        results = results[results['location_id'] != location_id]
-        results = results.head(limit)
+        results = query.execute()
 
-        # Enrich with image paths for both years
+        # Dashboard-specific enrichment: add image paths for both years
         results = enrich_change_results_with_images(results, db_connection_func, config.universe_name)
 
         return results
@@ -212,11 +165,12 @@ def search_change_patterns(
         raise
 
 
-def get_embedding_stats(db) -> dict:
+def get_embedding_stats(db, config) -> dict:
     """Get embedding statistics.
 
     Args:
         db: EmbeddingDB instance
+        config: Config instance
 
     Returns:
         Dictionary with statistics
@@ -228,7 +182,9 @@ def get_embedding_stats(db) -> dict:
         return {
             'total_embeddings': count,
             'years': years,
-            'year_count': len(years)
+            'year_count': len(years),
+            'vector_dim': config.vector_dim,
+            'universe_name': config.universe_name
         }
     except Exception as e:
         logger.error(f"Error getting stats: {e}")

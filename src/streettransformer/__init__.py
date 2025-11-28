@@ -30,6 +30,15 @@ from .embedding_db import EmbeddingDB, ImageEmbedding
 from .npz_cache import NPZCache, CacheInfo
 from .faiss_index import FAISSIndexer, IndexInfo
 from .whitening import WhiteningTransform, WhiteningStats
+from .clip_encoding import CLIPEncoder
+
+# Query classes (new)
+from .query import (
+    BaseQuery,
+    StateLocationQuery,
+    ChangeLocationQuery,
+    StateTextQuery,
+)
 
 __all__ = [
     # Config and database
@@ -52,4 +61,13 @@ __all__ = [
     # Whitening
     "WhiteningTransform",
     "WhiteningStats",
+
+    # CLIP encoding
+    "CLIPEncoder",
+
+    # Query classes
+    "BaseQuery",
+    "StateLocationQuery",
+    "ChangeLocationQuery",
+    "StateTextQuery",
 ]

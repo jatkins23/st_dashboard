@@ -248,7 +248,7 @@ def setup_callbacks(app):
     def handle_stats(n_clicks):
         """Handle statistics display."""
         try:
-            stats = get_embedding_stats(DB)
+            stats = get_embedding_stats(DB, CONFIG)
 
             return html.Div([
                 html.H4("Database Statistics"),

@@ -1789,9 +1789,11 @@ source = { editable = "." }
 dependencies = [
     { name = "dash" },
     { name = "duckdb" },
+    { name = "faiss-cpu" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas" },
+    { name = "pillow" },
     { name = "scikit-learn" },
 ]
 
@@ -1832,11 +1834,13 @@ requires-dist = [
     { name = "click", marker = "extra == 'cli'", specifier = ">=8.1.0" },
     { name = "dash", specifier = ">=3.3.0" },
     { name = "duckdb", specifier = ">=1.4.2" },
+    { name = "faiss-cpu", specifier = ">=1.13.0" },
     { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.13.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.4.0" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "open-clip-torch", marker = "extra == 'cli'", specifier = ">=3.2.0" },
     { name = "pandas", specifier = ">=2.0.0" },
+    { name = "pillow", specifier = ">=10.4.0" },
     { name = "pillow", marker = "extra == 'cli'", specifier = ">=9.0.0,<11.0.0" },
     { name = "plotly", marker = "extra == 'dashboard'", specifier = ">=5.17.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },

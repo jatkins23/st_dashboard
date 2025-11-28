@@ -133,6 +133,29 @@ def create_app_with_styling():
                 h1, h2, h3, h4 {
                     color: ''' + COLORS['text'] + ''';
                 }
+
+                /* Search form horizontal layout */
+                .search-form-row {
+                    display: flex;
+                    gap: 15px;
+                    align-items: flex-end;
+                    flex-wrap: wrap;
+                }
+
+                .search-form-field {
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 120px;
+                }
+
+                .search-form-field.flex-1 {
+                    flex: 1;
+                }
+
+                .search-form-field label {
+                    margin-bottom: 4px;
+                    font-size: 13px;
+                }
             </style>
         </head>
         <body>
