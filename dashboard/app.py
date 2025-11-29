@@ -1,8 +1,8 @@
 """
-Complete dashboard application with all callbacks.
+Clean dashboard application with map-centric UI.
 
 Usage:
-    python -m dashboard.app --db /path/to/core.ddb --universe lion --port 8050
+    python -m dashboard.app_clean --db /path/to/core.ddb --universe lion --port 8050
 """
 
 import argparse
@@ -11,7 +11,6 @@ from pathlib import Path
 
 from dash import Input, Output, State, html
 import pandas as pd
-import numpy as np
 
 from streettransformer import Config, EmbeddingDB
 from streettransformer.database import get_connection
@@ -22,81 +21,116 @@ from .backend.search import (
     search_change_patterns,
     get_embedding_stats
 )
-from .frontend.layout import create_app_with_styling, create_layout
-from .frontend.tabs import (
-    create_location_search_tab,
-    create_text_search_tab,
-    create_change_search_tab,
-    create_stats_tab
+from .frontend.layout_v2 import create_app_with_styling, create_clean_layout
+from .frontend.components.search_module import (
+    create_search_bar,
+    get_state_search_fields,
+    get_text_search_fields,
+    get_change_search_fields,
+    get_stats_fields
 )
-from .frontend.components import format_results_accordion, format_change_results_accordion
+from .frontend.components.results import format_results_accordion, format_change_results_accordion
+from .frontend.components.details_module import render_simple_details
+from .utils.map_utils import create_location_map, load_location_coordinates
 from .config import COLORS
 
 logger = logging.getLogger(__name__)
 
-# Global state (set via CLI args)
+# Global state
 CONFIG = None
 DB = None
 AVAILABLE_YEARS = []
+ALL_LOCATIONS_DF = None
+
+
+def get_location_basic_info(config, location_id: int):
+    """Get basic info about a location."""
+    with get_connection(config.database_path, read_only=True) as con:
+        query = f"""
+            SELECT
+                l.location_id,
+                COALESCE(
+                    CASE
+                        WHEN l.additional_streets IS NOT NULL
+                        THEN array_to_string(l.additional_streets, ', ')
+                        ELSE NULL
+                    END,
+                    CONCAT(l.street1, ' & ', l.street2)
+                ) as street_name
+            FROM {config.universe_name}.locations l
+            WHERE l.location_id = {location_id}
+        """
+        result = con.execute(query).df()
+        if result.empty:
+            return None
+        return result.iloc[0].to_dict()
+
+
+def get_location_images(config, location_id: int, limit: int = 10):
+    """Get images for a location."""
+    with get_connection(config.database_path, read_only=True) as con:
+        query = f"""
+            SELECT image_path, year
+            FROM {config.universe_name}.image_embeddings
+            WHERE location_id = {location_id}
+                AND image_path IS NOT NULL
+            ORDER BY year DESC
+            LIMIT {limit}
+        """
+        result = con.execute(query).df()
+        return result.to_dict('records') if not result.empty else []
 
 
 def setup_callbacks(app):
-    """Setup all Dash callbacks.
-
-    Args:
-        app: Dash app instance
-    """
+    """Setup all dashboard callbacks."""
 
     @app.callback(
-        Output('tab-content', 'children'),
-        Input('tabs', 'value')
+        Output('search-bar-container', 'children'),
+        Input('main-map', 'id')  # Dummy input to trigger on page load
     )
-    def render_tab(tab):
-        """Render the appropriate tab based on selection."""
-        if tab == 'location-search':
-            return create_location_search_tab(AVAILABLE_YEARS)
-        elif tab == 'text-search':
-            return create_text_search_tab(AVAILABLE_YEARS)
-        elif tab == 'change-search':
-            return create_change_search_tab(AVAILABLE_YEARS)
-        elif tab == 'stats':
-            return create_stats_tab()
-        else:
-            return html.Div("Tab not implemented yet")
+    def render_search_bar(_):
+        """Render the search bar."""
+        return create_search_bar(AVAILABLE_YEARS)
 
-    # Location search callbacks
     @app.callback(
-        Output('location-results', 'children'),
-        Input('location-search-btn', 'n_clicks'),
+        Output('search-fields', 'children'),
+        Input('search-tabs', 'value')
+    )
+    def update_search_fields(tab):
+        """Update search fields based on selected tab."""
+        if tab == 'state':
+            return get_state_search_fields(AVAILABLE_YEARS)
+        elif tab == 'text':
+            return get_text_search_fields(AVAILABLE_YEARS)
+        elif tab == 'change':
+            return get_change_search_fields(AVAILABLE_YEARS)
+        elif tab == 'stats':
+            return get_stats_fields()
+        return html.Div()
+
+    @app.callback(
+        Output('results-content', 'children'),
+        Output('results-panel', 'style'),
+        Output('result-locations', 'data'),
+        Input('search-btn', 'n_clicks'),
         State('location-id-input', 'value'),
         State('year-dropdown', 'value'),
         State('target-year-dropdown', 'value'),
         State('limit-dropdown', 'value'),
         State('use-faiss-checkbox', 'value'),
         State('use-whitening-checkbox', 'value'),
+        State('results-panel', 'style'),
         prevent_initial_call=True
     )
-    def handle_location_search(n_clicks, location_id, year, target_year, limit, use_faiss, use_whitening):
-        """Handle location similarity search."""
-        # Validate inputs
-        if isinstance(location_id, (list, tuple, np.ndarray, pd.Series)):
-            return html.Div("Please enter a single location ID (not an array)", className='error-message')
-
-        if location_id is None:
-            return html.Div("Please enter a location ID", className='error-message')
-
-        if isinstance(year, (list, tuple, np.ndarray, pd.Series)):
-            return html.Div("Please select a single year (not an array)", className='error-message')
-
-        if year is None:
-            return html.Div("Please select a year", className='error-message')
+    def handle_state_search(n_clicks, location_id, year, target_year, limit, use_faiss, use_whitening, panel_style):
+        """Handle state/location search."""
+        if not location_id or not year:
+            return html.Div("Please enter location ID and year", className='error-message'), panel_style, []
 
         try:
-            # Parse checkbox values
             use_faiss_enabled = 'faiss' in (use_faiss or [])
             use_whitening_enabled = 'whitening' in (use_whitening or [])
 
-            # Search
             results = search_by_location(
                 config=CONFIG,
                 db=DB,
@@ -110,182 +144,121 @@ def setup_callbacks(app):
             )
 
             if results.empty:
-                return html.Div(
-                    f"No results found for location {location_id}, year {year}",
-                    className='warning-message'
+                return (
+                    html.Div(f"No results found", className='warning-message'),
+                    {**panel_style, 'display': 'block'},
+                    []
                 )
 
-            # Build method info message
-            methods_used = []
-            if use_faiss_enabled:
-                methods_used.append("FAISS")
-            if use_whitening_enabled:
-                methods_used.append("Whitening reranking")
-            methods_msg = f" (using {', '.join(methods_used)})" if methods_used else ""
+            result_location_ids = results['location_id'].tolist()
 
-            return html.Div([
-                html.H4(f"Top {len(results)} similar locations{methods_msg}:",
-                       style={'color': COLORS['success'], 'marginBottom': 20}),
-                format_results_accordion(results)
-            ])
+            return (
+                html.Div([
+                    html.H4(f"Top {len(results)} similar locations:",
+                           style={'color': COLORS['success'], 'marginBottom': 15, 'fontSize': '16px'}),
+                    format_results_accordion(results)
+                ]),
+                {**panel_style, 'display': 'block'},
+                result_location_ids
+            )
 
         except Exception as e:
             logger.error(f"Search error: {e}", exc_info=True)
-            return html.Div(f"Error: {str(e)}", className='error-message')
-
-    # Text search callbacks
-    @app.callback(
-        Output('text-results', 'children'),
-        Input('text-search-btn', 'n_clicks'),
-        State('text-query-input', 'value'),
-        State('text-year-dropdown', 'value'),
-        State('text-limit-dropdown', 'value'),
-        State('text-use-faiss-checkbox', 'value'),
-        State('text-use-whitening-checkbox', 'value'),
-        prevent_initial_call=True
-    )
-    def handle_text_search(n_clicks, text_query, year, limit, use_faiss, use_whitening):
-        """Handle text-to-image search."""
-        if not text_query or not text_query.strip():
-            return html.Div("Please enter a text query", className='error-message')
-
-        try:
-            # Parse checkbox values
-            use_faiss_enabled = 'faiss' in (use_faiss or [])
-            use_whitening_enabled = 'whitening' in (use_whitening or [])
-
-            # Search
-            results = search_by_text(
-                config=CONFIG,
-                db=DB,
-                db_connection_func=lambda: get_connection(CONFIG.database_path, read_only=True),
-                text_query=text_query,
-                year=year,
-                limit=limit,
-                use_faiss=use_faiss_enabled,
-                use_whitening=use_whitening_enabled
+            return (
+                html.Div(f"Error: {str(e)}", className='error-message'),
+                {**panel_style, 'display': 'block'},
+                []
             )
 
-            if results.empty:
-                return html.Div(
-                    f"No results found for query '{text_query}'",
-                    className='warning-message'
-                )
-
-            # Build method info message
-            methods_used = []
-            if use_faiss_enabled:
-                methods_used.append("FAISS")
-            if use_whitening_enabled:
-                methods_used.append("Whitening reranking")
-            methods_msg = f" (using {', '.join(methods_used)})" if methods_used else ""
-
-            year_msg = f" in year {year}" if year else ""
-
-            return html.Div([
-                html.H4(f"Top {len(results)} matches for \"{text_query}\"{year_msg}{methods_msg}:",
-                       style={'color': COLORS['success'], 'marginBottom': 20}),
-                format_results_accordion(results, show_years=(year is None))
-            ])
-
-        except Exception as e:
-            logger.error(f"Text search error: {e}", exc_info=True)
-            return html.Div(f"Error: {str(e)}", className='error-message')
-
-    # Change search callbacks
     @app.callback(
-        Output('change-results', 'children'),
-        Input('change-search-btn', 'n_clicks'),
-        State('change-location-id-input', 'value'),
-        State('year-from-dropdown', 'value'),
-        State('year-to-dropdown', 'value'),
-        State('change-limit-dropdown', 'value'),
-        prevent_initial_call=True
-    )
-    def handle_change_search(n_clicks, location_id, year_from, year_to, limit):
-        """Handle change pattern detection search."""
-        if not location_id:
-            return html.Div("Please enter a location ID", className='error-message')
-
-        if not all([year_from, year_to]):
-            return html.Div("Please select both years", className='error-message')
-
-        try:
-            results = search_change_patterns(
-                config=CONFIG,
-                db=DB,
-                db_connection_func=lambda: get_connection(CONFIG.database_path, read_only=True),
-                location_id=location_id,
-                year_from=year_from,
-                year_to=year_to,
-                limit=limit
-            )
-
-            if results.empty:
-                return html.Div(
-                    f"No results found for location {location_id} change pattern",
-                    className='warning-message'
-                )
-
-            return html.Div([
-                html.H4(
-                    f"Locations with similar changes ({year_from} → {year_to}):",
-                    style={'color': COLORS['success'], 'marginBottom': 20}
-                ),
-                format_change_results_accordion(results)
-            ])
-
-        except Exception as e:
-            logger.error(f"Change search error: {e}", exc_info=True)
-            return html.Div(f"Error: {str(e)}", className='error-message')
-
-    # Statistics callback
-    @app.callback(
-        Output('stats-content', 'children'),
-        Input('stats-refresh-btn', 'n_clicks'),
+        Output('details-content', 'children'),
+        Output('details-panel', 'style'),
+        Output('query-location-id', 'data'),
+        Input('location-id-input', 'value'),
+        Input('change-location-id-input', 'value'),
+        Input('main-map', 'clickData'),
+        State('details-panel', 'style'),
         prevent_initial_call=False
     )
-    def handle_stats(n_clicks):
-        """Handle statistics display."""
-        try:
-            stats = get_embedding_stats(DB, CONFIG)
+    def update_details(state_location_id, change_location_id, click_data, panel_style):
+        """Update details panel when location is selected."""
+        location_id = state_location_id or change_location_id
 
-            return html.Div([
-                html.H4("Database Statistics"),
-                html.Div([
-                    html.Div([
-                        html.Strong("Total Embeddings: "),
-                        html.Span(f"{stats['total_embeddings']:,}")
-                    ], style={'marginBottom': 10}),
-                    html.Div([
-                        html.Strong("Number of Years: "),
-                        html.Span(str(stats['year_count']))
-                    ], style={'marginBottom': 10}),
-                    html.Div([
-                        html.Strong("Years Available: "),
-                        html.Span(str(stats['years']))
-                    ], style={'marginBottom': 10}),
-                    html.Div([
-                        html.Strong("Vector Dimension: "),
-                        html.Span(str(stats['vector_dim']))
-                    ], style={'marginBottom': 10}),
-                    html.Div([
-                        html.Strong("Universe: "),
-                        html.Span(stats['universe_name'])
-                    ], style={'marginBottom': 10}),
-                ], style={'fontSize': 16})
-            ])
+        # Handle map click
+        if click_data and 'points' in click_data and len(click_data['points']) > 0:
+            point = click_data['points'][0]
+            if 'customdata' in point:
+                location_id = point['customdata']
+
+        if not location_id:
+            return (
+                html.Div("Enter a location ID or click on the map",
+                        style={'color': COLORS['text-secondary'], 'fontStyle': 'italic',
+                               'padding': '20px', 'textAlign': 'center'}),
+                {**panel_style, 'display': 'none'},
+                None
+            )
+
+        try:
+            # Get location info
+            location_info = get_location_basic_info(CONFIG, location_id)
+            if not location_info:
+                return (
+                    html.Div(f"Location {location_id} not found",
+                            style={'color': COLORS['error'], 'padding': '20px'}),
+                    {**panel_style, 'display': 'block'},
+                    location_id
+                )
+
+            # Get images
+            images = get_location_images(CONFIG, location_id)
+
+            return (
+                render_simple_details(location_id, location_info['street_name'], images),
+                {**panel_style, 'display': 'block'},
+                location_id
+            )
 
         except Exception as e:
-            logger.error(f"Stats error: {e}", exc_info=True)
-            return html.Div(f"Error: {str(e)}", className='error-message')
+            logger.error(f"Error getting location details: {e}", exc_info=True)
+            return (
+                html.Div(f"Error: {str(e)}", style={'color': COLORS['error'], 'padding': '20px'}),
+                {**panel_style, 'display': 'block'},
+                location_id
+            )
+
+    @app.callback(
+        Output('main-map', 'figure'),
+        Input('query-location-id', 'data'),
+        Input('result-locations', 'data'),
+        prevent_initial_call=False
+    )
+    def update_map(query_location_id, result_location_ids):
+        """Update map with selected location and results."""
+        global ALL_LOCATIONS_DF
+
+        # NYC coordinates
+        center_lat = 40.7128
+        center_lon = -74.0060
+
+        # Create map with Positron Dark style
+        fig = create_location_map(
+            locations_df=ALL_LOCATIONS_DF,
+            selected_location_id=query_location_id,
+            result_location_ids=result_location_ids or [],
+            center_lat=center_lat,
+            center_lon=center_lon,
+            zoom=11
+        )
+
+        return fig
 
 
 def main():
-    """Main entry point for the dashboard."""
-    global CONFIG, DB, AVAILABLE_YEARS
+    """Main entry point."""
+    global CONFIG, DB, AVAILABLE_YEARS, ALL_LOCATIONS_DF
 
-    parser = argparse.ArgumentParser(description="Image Embedding Dashboard")
+    parser = argparse.ArgumentParser(description="Image Embedding Dashboard (Clean)")
     parser.add_argument('--db', type=str, required=True, help='Path to DuckDB database')
     parser.add_argument('--universe', '-u', type=str, required=True, help='Universe name')
     parser.add_argument('--port', '-p', type=int, default=8050, help='Port to run on')
@@ -311,24 +284,31 @@ def main():
     stats = DB.get_stats()
     AVAILABLE_YEARS = sorted(stats['years'])
 
-    logger.info(f"Starting dashboard for universe: {args.universe}")
-    logger.info(f"Available years: {AVAILABLE_YEARS}")
+    # Load all locations for the map
+    logger.info("Loading location coordinates for map...")
+    ALL_LOCATIONS_DF = load_location_coordinates(
+        CONFIG,
+        lambda: get_connection(CONFIG.database_path, read_only=True),
+        limit=5000
+    )
+    logger.info(f"Loaded {len(ALL_LOCATIONS_DF)} locations")
 
     # Create app
     app, index_string = create_app_with_styling()
     app.index_string = index_string
-    app.layout = create_layout(args.universe)
+    app.layout = create_clean_layout(args.universe)
 
     # Setup callbacks
     setup_callbacks(app)
 
     print(f"\n{'='*60}")
-    print(f"Image Embedding Dashboard")
+    print(f"Image Embedding Dashboard (Clean)")
     print(f"{'='*60}")
     print(f"Universe: {args.universe}")
     print(f"Database: {args.db}")
     print(f"URL: http://{args.host}:{args.port}")
     print(f"Available Years: {AVAILABLE_YEARS}")
+    print(f"Locations Loaded: {len(ALL_LOCATIONS_DF)}")
     print(f"{'='*60}\n")
 
     app.run(debug=args.debug, host=args.host, port=args.port)

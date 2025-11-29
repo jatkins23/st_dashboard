@@ -182,7 +182,7 @@ def create_app_with_styling():
 
 
 def create_layout(universe_name: str):
-    """Create main dashboard layout with tabs.
+    """Create main dashboard layout with map and floating panels.
 
     Args:
         universe_name: Name of the universe being explored
@@ -191,15 +191,123 @@ def create_layout(universe_name: str):
         Dash HTML Div with complete layout
     """
     return html.Div([
-        html.H1(f"Image Embedding Explorer - {universe_name}",
-                style={'textAlign': 'center', 'marginBottom': 30, 'color': COLORS['text']}),
+        # Search bar container at top
+        html.Div([
+            # Title and tabs row
+            html.Div([
+                html.H2(f"Image Embedding Explorer - {universe_name}",
+                       style={'margin': 0, 'color': COLORS['text'], 'fontSize': '20px'}),
+                dcc.Tabs(id='tabs', value='state', children=[
+                    dcc.Tab(label='State', value='state', className='tab'),
+                    dcc.Tab(label='Text', value='text', className='tab'),
+                    dcc.Tab(label='Change', value='change', className='tab'),
+                    dcc.Tab(label='Stats', value='stats', className='tab'),
+                ], style={'marginLeft': '20px'}),
+            ], style={
+                'display': 'flex',
+                'alignItems': 'center',
+                'marginBottom': '15px'
+            }),
 
-        dcc.Tabs(id='tabs', value='location-search', children=[
-            dcc.Tab(label='Location Similarity', value='location-search', className='tab'),
-            dcc.Tab(label='Text Search', value='text-search', className='tab'),
-            dcc.Tab(label='Change Detection', value='change-search', className='tab'),
-            dcc.Tab(label='Statistics', value='stats', className='tab'),
-        ]),
+            # Search fields container (populated by callback based on tab)
+            html.Div(id='search-fields-container', style={'marginBottom': '10px'}),
 
-        html.Div(id='tab-content', style={'padding': 20})
-    ], style={'maxWidth': '1200px', 'margin': '0 auto'})
+        ], style={
+            'position': 'fixed',
+            'top': 0,
+            'left': 0,
+            'right': 0,
+            'backgroundColor': COLORS['background'],
+            'padding': '15px 20px',
+            'borderBottom': f"1px solid {COLORS['border']}",
+            'zIndex': 1000,
+            'boxShadow': '0 2px 8px rgba(0,0,0,0.3)'
+        }),
+
+        # Map container (full page below search bar)
+        html.Div([
+            dcc.Graph(
+                id='location-map',
+                style={'width': '100%', 'height': '100%'},
+                config={'displayModeBar': False}
+            ),
+
+            # Floating Results Panel (left side)
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3("Results", style={'margin': 0, 'fontSize': '18px', 'color': COLORS['text']}),
+                        html.Button('×', id='close-results-btn',
+                                  style={
+                                      'background': 'none',
+                                      'border': 'none',
+                                      'fontSize': '24px',
+                                      'cursor': 'pointer',
+                                      'color': COLORS['text-secondary'],
+                                      'padding': '0',
+                                      'width': '30px',
+                                      'height': '30px'
+                                  })
+                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '15px'}),
+                    html.Div(id='results-panel-content', style={'overflowY': 'auto', 'maxHeight': 'calc(100% - 50px)'})
+                ], style={'padding': '20px', 'height': '100%', 'display': 'flex', 'flexDirection': 'column'})
+            ], id='results-panel', style={
+                'position': 'absolute',
+                'left': '20px',
+                'top': '20px',
+                'bottom': '20px',
+                'width': '400px',
+                'backgroundColor': COLORS['card'],
+                'borderRadius': '8px',
+                'boxShadow': '0 4px 12px rgba(0,0,0,0.5)',
+                'display': 'none',  # Hidden by default
+                'zIndex': 100
+            }),
+
+            # Floating Detail Panel (right side)
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3("Location Details", style={'margin': 0, 'fontSize': '18px', 'color': COLORS['text']}),
+                        html.Button('×', id='close-details-btn',
+                                  style={
+                                      'background': 'none',
+                                      'border': 'none',
+                                      'fontSize': '24px',
+                                      'cursor': 'pointer',
+                                      'color': COLORS['text-secondary'],
+                                      'padding': '0',
+                                      'width': '30px',
+                                      'height': '30px'
+                                  })
+                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '15px'}),
+                    html.Div(id='details-panel-content', style={'overflowY': 'auto', 'maxHeight': 'calc(100% - 50px)'})
+                ], style={'padding': '20px', 'height': '100%', 'display': 'flex', 'flexDirection': 'column'})
+            ], id='details-panel', style={
+                'position': 'absolute',
+                'right': '20px',
+                'top': '20px',
+                'bottom': '20px',
+                'width': '450px',
+                'backgroundColor': COLORS['card'],
+                'borderRadius': '8px',
+                'boxShadow': '0 4px 12px rgba(0,0,0,0.5)',
+                'display': 'none',  # Hidden by default
+                'zIndex': 100
+            }),
+
+        ], style={
+            'position': 'fixed',
+            'top': '130px',  # Below search bar
+            'left': 0,
+            'right': 0,
+            'bottom': 0,
+            'backgroundColor': COLORS['background']
+        }),
+
+        # Hidden stores for state management
+        dcc.Store(id='selected-location-id'),
+        dcc.Store(id='result-location-ids'),
+        dcc.Store(id='all-locations-data'),
+
+    ], style={'height': '100vh', 'overflow': 'hidden'})

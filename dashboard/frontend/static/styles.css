@@ -1,0 +1,159 @@
+/* Dashboard Dark Mode Styles */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #1e1e1e;
+    color: #cccccc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Accordion styles */
+.accordion-item {
+    background-color: #252526;
+    border: 1px solid #3e3e42;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.accordion-header {
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #252526;
+    transition: background-color 0.2s;
+}
+
+.accordion-header:hover {
+    background-color: #3c3c3c;
+}
+
+.accordion-content {
+    padding: 20px;
+    border-top: 1px solid #3e3e42;
+    display: none;
+}
+
+.accordion-content.active {
+    display: block;
+}
+
+.similarity-badge {
+    background-color: #0e639c;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.location-info {
+    color: #8e8e93;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.image-container {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.image-container img {
+    max-width: 100%;
+    border-radius: 4px;
+    border: 1px solid #3e3e42;
+}
+
+/* Form controls */
+input, select, .Select-control {
+    background-color: #3c3c3c !important;
+    color: #cccccc !important;
+    border: 1px solid #3e3e42 !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+}
+
+button {
+    background-color: #0e639c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #1177bb;
+}
+
+label {
+    color: #8e8e93;
+    font-size: 12px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Messages */
+.error-message {
+    color: #f48771;
+    padding: 12px;
+    background-color: rgba(244, 135, 113, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid #f48771;
+}
+
+.warning-message {
+    color: #ce9178;
+    padding: 12px;
+    background-color: rgba(206, 145, 120, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid #ce9178;
+}
+
+.success-message {
+    color: #4ec9b0;
+}
+
+/* Search form */
+.search-form-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.search-form-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+}
+
+.search-form-field.flex-1 {
+    flex: 1;
+}
+
+/* Tabs */
+.tab {
+    background-color: #252526 !important;
+    color: #cccccc !important;
+    border: 1px solid #3e3e42 !important;
+}
+
+.tab--selected {
+    background-color: #0e639c !important;
+    color: white !important;
+}
+
+h1, h2, h3, h4 {
+    color: #cccccc;
+}
