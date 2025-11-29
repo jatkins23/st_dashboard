@@ -11,5 +11,6 @@ __pycache__
 *.svg
 *.png
 *.pyc
-*__pycache__/
+*__pycache__
 *.egg-info
+*.example

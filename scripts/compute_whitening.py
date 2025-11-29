@@ -4,7 +4,12 @@ This script computes whitening transformation statistics that can be used
 to improve retrieval quality by normalizing the embedding space.
 
 Usage:
+    # Set database path (optional, avoids typing --db every time)
+    export ST_DATABASE_PATH=/path/to/core.ddb
+
     # Compute whitening for a specific year
+    python scripts/compute_whitening.py --db core.ddb --universe lion --year 2020
+    # Or with environment variable:
     python scripts/compute_whitening.py --universe lion --year 2020
 
     # Compute for all years
@@ -43,7 +48,7 @@ def compute_statistics(
     universe_name: str,
     database_path: str,
     years: list[int] | None = None,
-    stats_dir: str = './whitening_stats',
+    stats_dir: str = './data/whitening_stats',
     cache_dir: str = './data/embedding_cache',
     n_components: int | None = None,
     n_samples: int | None = None,
@@ -98,7 +103,7 @@ def compute_statistics(
             logger.error(f"Failed to compute statistics for year {year}: {e}")
 
 
-def list_statistics(universe_name: str, database_path: str, stats_dir: str = './whitening_stats'):
+def list_statistics(universe_name: str, database_path: str, stats_dir: str = './data/whitening_stats'):
     """List all available whitening statistics.
 
     Args:
@@ -135,7 +140,7 @@ def test_retrieval(
     database_path: str,
     year: int,
     location_id: int,
-    stats_dir: str = './whitening_stats',
+    stats_dir: str = './data/whitening_stats',
     k: int = 20
 ):
     """Test retrieval quality improvement with whitening.
@@ -250,7 +255,7 @@ def main():
     )
 
     parser = ArgumentParser(description="Compute whitening statistics for embeddings")
-    parser.add_argument('--db', '-d', type=str, required=True, help='Path to DuckDB database')
+    parser.add_argument('--db', '-d', type=str, help='Path to DuckDB database (or set ST_DATABASE_PATH env var)')
     parser.add_argument('--universe', '-u', type=str, required=True, help='Universe name')
 
     # Actions
@@ -265,7 +270,7 @@ def main():
     parser.add_argument('--n-samples', type=int, help='Number of samples to use (default: all)')
 
     # Directories
-    parser.add_argument('--stats-dir', type=str, default='./whitening_stats',
+    parser.add_argument('--stats-dir', type=str, default='./data/whitening_stats',
                         help='Directory for statistics files')
     parser.add_argument('--cache-dir', type=str, default='./data/embedding_cache',
                         help='Directory for NPZ caches')

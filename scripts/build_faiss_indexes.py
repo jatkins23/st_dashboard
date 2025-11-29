@@ -4,7 +4,12 @@ This script builds FAISS indexes from embeddings stored in DuckDB,
 enabling much faster similarity search compared to database queries.
 
 Usage:
+    # Set database path (optional, avoids typing --db every time)
+    export ST_DATABASE_PATH=/path/to/core.ddb
+
     # Build HNSW index for a specific year
+    python scripts/build_faiss_indexes.py --db core.ddb --universe lion --year 2020 --index-type hnsw
+    # Or with environment variable:
     python scripts/build_faiss_indexes.py --universe lion --year 2020 --index-type hnsw
 
     # Build for all years
@@ -209,7 +214,7 @@ def main():
     )
 
     parser = ArgumentParser(description="Build FAISS indexes for embeddings")
-    parser.add_argument('--db', '-d', type=str, required=True, help='Path to DuckDB database')
+    parser.add_argument('--db', '-d', type=str, help='Path to DuckDB database (or set ST_DATABASE_PATH env var)')
     parser.add_argument('--universe', '-u', type=str, required=True, help='Universe name')
 
     # Actions
