@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from .database import get_connection
-from ..config import Config
+from ..config import STConfig
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class EmbeddingDB:
         vector_dim: Dimensionality of embeddings
 
     Example:
-        >>> config = Config(database_path="data.db", universe_name="lion")
+        >>> config = STConfig(database_path="data.db", universe_name="lion")
         >>> db = EmbeddingDB(config)
         >>> db.setup_schema()
         >>>
@@ -86,7 +86,7 @@ class EmbeddingDB:
         >>> results = db.search_similar(query_vec, limit=10)
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: STConfig):
         """Initialize EmbeddingDB.
 
         Args:

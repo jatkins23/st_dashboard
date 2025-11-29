@@ -64,13 +64,13 @@ def build_indexes(
     """
     # Auto-detect years if not specified
     if years is None:
-        config = Config(database_path=database_path, universe_name=universe_name)
+        config = STConfig(database_path=database_path, universe_name=universe_name)
         db = EmbeddingDB(config)
         years = db.get_years()
         logger.info(f"Auto-detected years: {years}")
 
     # Create config
-    config = Config(
+    config = STConfig(
         database_path=database_path,
         universe_name=universe_name,
         cache_dir=cache_dir,
@@ -117,7 +117,7 @@ def list_indexes(universe_name: str, database_path: str, index_dir: str = './dat
         database_path: Path to DuckDB database
         index_dir: Directory for indexes
     """
-    config = Config(database_path=database_path, universe_name=universe_name, index_dir=index_dir)
+    config = STConfig(database_path=database_path, universe_name=universe_name, index_dir=index_dir)
     indexer = FAISSIndexer(config)
     indexes = indexer.list_indexes()
 
@@ -161,7 +161,7 @@ def benchmark_indexes(
         n_queries: Number of queries
         k: Number of results per query
     """
-    config = Config(database_path=database_path, universe_name=universe_name, index_dir=index_dir)
+    config = STConfig(database_path=database_path, universe_name=universe_name, index_dir=index_dir)
     indexer = FAISSIndexer(config)
 
     print(f"\n{'='*80}")

@@ -39,7 +39,7 @@ import logging
 
 import numpy as np
 
-from streettransformer import WhiteningTransform, Config, EmbeddingDB
+from streettransformer import WhiteningTransform, STConfig, EmbeddingDB
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +68,13 @@ def compute_statistics(
     """
     # Auto-detect years if not specified
     if years is None:
-        config = Config(database_path=database_path, universe_name=universe_name)
+        config = STConfig(database_path=database_path, universe_name=universe_name)
         db = EmbeddingDB(config)
         years = db.get_years()
         logger.info(f"Auto-detected years: {years}")
 
     # Create whitening transform
-    config = Config(database_path=database_path, universe_name=universe_name, stats_dir=stats_dir)
+    config = STConfig(database_path=database_path, universe_name=universe_name, stats_dir=stats_dir)
     whiten = WhiteningTransform(config)
 
     for year in years:
@@ -111,7 +111,7 @@ def list_statistics(universe_name: str, database_path: str, stats_dir: str = './
         database_path: Path to DuckDB database
         stats_dir: Directory for statistics
     """
-    config = Config(database_path=database_path, universe_name=universe_name, stats_dir=stats_dir)
+    config = STConfig(database_path=database_path, universe_name=universe_name, stats_dir=stats_dir)
     whiten = WhiteningTransform(config)
     stats_list = whiten.list_statistics()
 
@@ -158,7 +158,7 @@ def test_retrieval(
     print(f"{'='*80}\n")
 
     # Load query embedding
-    config = Config(database_path=database_path, universe_name=universe_name)
+    config = STConfig(database_path=database_path, universe_name=universe_name)
     db = EmbeddingDB(config)
 
     # Get query embedding from database
@@ -188,7 +188,7 @@ def test_retrieval(
 
     # Apply whitening and rerank
     logger.info("Applying whitening transformation...")
-    config = Config(database_path=database_path, universe_name=universe_name, stats_dir=stats_dir)
+    config = STConfig(database_path=database_path, universe_name=universe_name, stats_dir=stats_dir)
     whiten = WhiteningTransform(config)
 
     try:

@@ -10,7 +10,7 @@ Supported index types:
 - HNSW: Hierarchical Navigable Small World graph (fast approximate search)
 
 Usage:
-    >>> config = Config(database_path="data.db", universe_name="lion")
+    >>> config = STConfig(database_path="data.db", universe_name="lion")
     >>> indexer = FAISSIndexer(config)
     >>> indexer.build_index(year=2020, index_type='hnsw')
     >>>
@@ -40,7 +40,7 @@ except ImportError:
     faiss = None
 
 from .npz_cache import NPZCache
-from ..config import Config
+from ..config import STConfig
 from .database import get_connection
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ class FAISSIndexer:
         cache: NPZ cache for loading embeddings
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: STConfig):
         """Initialize FAISS indexer.
 
         Args:

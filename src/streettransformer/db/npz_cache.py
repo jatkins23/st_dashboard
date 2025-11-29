@@ -12,7 +12,7 @@ The cache stores:
 - Cache creation timestamp and statistics
 
 Usage:
-    >>> config = Config(database_path="data.db", universe_name="lion")
+    >>> config = STConfig(database_path="data.db", universe_name="lion")
     >>> cache = NPZCache(config)
     >>> cache.build_from_db(year=2020)
     >>>
@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 from .database import get_connection
-from ..config import Config
+from ..config import STConfig
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class NPZCache:
         vector_dim: Embedding dimensionality
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: STConfig):
         """Initialize NPZ cache manager.
 
         Args:

@@ -6,10 +6,10 @@ This package provides a clean abstraction for executing different types of searc
 - StateTextQuery: Find locations matching text descriptions
 
 Example:
-    >>> from streettransformer import Config, EmbeddingDB
+    >>> from streettransformer import STConfig, EmbeddingDB
     >>> from streettransformer.query import StateLocationQuery
     >>>
-    >>> config = Config(database_path="data.db", universe_name="lion")
+    >>> config = STConfig(database_path="data.db", universe_name="lion")
     >>> db = EmbeddingDB(config)
     >>>
     >>> # Search for similar locations
@@ -24,22 +24,28 @@ Example:
     >>> results = query.execute()
 """
 
-from .base import BaseQuery
-from .queries import StateLocationQuery, ChangeLocationQuery, StateTextQuery
+from .queries import ImageToImageStateQuery, ImageToImageChangeQuery, StateResultInstance, ChangeResultInstance, StateResultsSet, ChangeResultsSet
 from .mixins import StateMixin, ChangeMixin, DatabaseMixin, SearchMethodMixin
+from .clip_embedding import CLIPEncoder
 
 __all__ = [
-    # Base classes
-    'BaseQuery',
+    'CLIPEncoder',
 
     # Concrete query classes
-    'StateLocationQuery',
-    'ChangeLocationQuery',
-    'StateTextQuery',
+    'ImageToImageStateQuery',
+    'ImageToImageChangeQuery',
+    
+    # Concrete ResultsSet Classes
+    'StateResultsSet',
+    'ChangeResultsSet',
 
+    # Concrete ResultInstance Classes
+    'StateResultInstance',
+    'ChangeResultInstance',
+    
     # Mixins (for advanced usage)
     'StateMixin',
     'ChangeMixin',
     'DatabaseMixin',
-    'SearchMethodMixin',
+    'SearchMethodMixin'
 ]

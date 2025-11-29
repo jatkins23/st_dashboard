@@ -8,7 +8,7 @@ from typing import Generator
 
 import duckdb
 
-from ..config import Config
+from ..config import STConfig
 
 
 @contextmanager
@@ -57,13 +57,13 @@ class Database:
         config: Configuration with database path
 
     Example:
-        >>> config = Config(database_path="data.db", universe_name="lion")
+        >>> config = STConfig(database_path="data.db", universe_name="lion")
         >>> db = Database(config)
         >>> with db.connect() as con:
         ...     results = con.execute("SELECT * FROM lion.image_embeddings").df()
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: STConfig):
         """Initialize database manager.
 
         Args:

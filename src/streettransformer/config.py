@@ -9,7 +9,7 @@ from typing import Optional
 
 
 @dataclass
-class Config:
+class STConfig:
     """Configuration for StreetTransformer.
 
     Attributes:
@@ -27,23 +27,23 @@ class Config:
 
     Example:
         >>> # Local database
-        >>> config = Config(
+        >>> config = STConfig(
         ...     database_path="/path/to/data.db",
         ...     universe_name="lion"
         ... )
         >>> # Remote database (HTTP/HTTPS)
-        >>> config = Config(
+        >>> config = STConfig(
         ...     database_path="https://example.com/data.ddb",
         ...     universe_name="lion"
         ... )
         >>> # S3 database
-        >>> config = Config(
+        >>> config = STConfig(
         ...     database_path="s3://bucket/path/data.ddb",
         ...     universe_name="lion"
         ... )
         >>> # Or use environment variable
         >>> os.environ['ST_DATABASE_PATH'] = "https://example.com/data.ddb"
-        >>> config = Config(universe_name="lion")
+        >>> config = STConfig(universe_name="lion")
     """
 
     database_path: str | Path | None = None

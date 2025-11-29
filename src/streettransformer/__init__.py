@@ -24,25 +24,29 @@ Example:
 
 __version__ = "0.1.0"
 
-from .config import Config
+from .config import STConfig
 from .db.database import Database, get_connection
 from .db.embedding_db import EmbeddingDB, ImageEmbedding
 from .db.npz_cache import NPZCache, CacheInfo
 from .db.faiss_index import FAISSIndexer, IndexInfo
 from .db.whitening import WhiteningTransform, WhiteningStats
-from .query.clip_encoding import CLIPEncoder
-
-# Query classes (new)
 from .query import (
-    BaseQuery,
-    StateLocationQuery,
-    ChangeLocationQuery,
-    StateTextQuery,
+    CLIPEncoder,
+    ImageToImageStateQuery,
+    ImageToImageChangeQuery,
+    StateResultsSet,
+    ChangeResultsSet,
+    StateResultInstance,
+    ChangeResultInstance,
+    StateMixin,
+    ChangeMixin,
+    DatabaseMixin,
+    SearchMethodMixin
 )
 
 __all__ = [
     # Config and database
-    "Config",
+    "STConfig",
     "Database",
     "get_connection",
 
@@ -64,10 +68,22 @@ __all__ = [
 
     # CLIP encoding
     "CLIPEncoder",
+    
+    # Concrete query classes
+    'ImageToImageStateQuery',
+    'ImageToImageChangeQuery',
+    
+    # Concrete ResultsSet Classes
+    'StateResultsSet',
+    'ChangeResultsSet',
 
-    # Query classes
-    "BaseQuery",
-    "StateLocationQuery",
-    "ChangeLocationQuery",
-    "StateTextQuery",
+    # Concrete ResultInstance Classes
+    'StateResultInstance',
+    'ChangeResultInstance',
+    
+    # Mixins (for advanced usage)
+    'StateMixin',
+    'ChangeMixin',
+    'DatabaseMixin',
+    'SearchMethodMixin',
 ]
