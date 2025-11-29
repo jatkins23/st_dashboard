@@ -8,8 +8,6 @@ __pycache__
 *.pyc
 .env
 
-*.svg
-*.png
 *.pyc
 *__pycache__
 *.egg-info
