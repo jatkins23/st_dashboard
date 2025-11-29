@@ -4,11 +4,13 @@ Vector embeddings for street imagery analysis with DuckDB and FAISS.
 
 ## Features
 
+- **Query Classes**: Clean API for location similarity, change detection, and text search
 - **DuckDB Storage**: Efficient vector storage with VSS extension
 - **FAISS Indexing**: Fast approximate nearest neighbor search
+- **CLIP Text Search**: Natural language queries for image search
 - **PCA Whitening**: Improved retrieval quality through whitening transformation
 - **NPZ Caching**: Fast embedding loading with compressed caches
-- **CLI Tools**: Command-line interface for querying and generating embeddings
+- **Dashboard**: Interactive Dash web interface for exploring results
 
 ## Installation
 
@@ -55,7 +57,7 @@ python scripts/build_faiss_indexes.py --universe lion --year 2020 --index-type h
 ### Using with existing st_preprocessing database
 
 ```python
-from streettransformer import Config, EmbeddingDB
+from streettransformer import Config, EmbeddingDB, StateLocationQuery
 
 # Point to your st_preprocessing database
 config = Config(
@@ -67,13 +69,57 @@ config = Config(
 # export ST_DATABASE_PATH=/Users/jon/code/st_preprocessing/data.db
 config = Config(universe_name="lion")  # Will read from ST_DATABASE_PATH
 
-# Query embeddings
+# Initialize database
 db = EmbeddingDB(config)
-import numpy as np
 
-query_vector = np.random.rand(512)  # Your query embedding
-results = db.search_similar(query_vector, limit=10, year=2020)
+# Search for similar locations
+query = StateLocationQuery(
+    location_id=123,
+    year=2020,
+    config=config,
+    db=db,
+    limit=10
+)
+results = query.execute()
 print(results)
+```
+
+### Search for change patterns
+
+```python
+from streettransformer import ChangeLocationQuery
+
+# Find locations with similar visual changes
+query = ChangeLocationQuery(
+    location_id=123,
+    start_year=2015,
+    end_year=2020,
+    config=config,
+    db=db,
+    limit=10
+)
+results = query.execute()
+```
+
+### Text-to-image search
+
+```python
+from streettransformer import StateTextQuery, CLIPEncoder
+
+# Create CLIP encoder (do this once at startup)
+encoder = CLIPEncoder()
+
+# Search using natural language
+query = StateTextQuery(
+    text_query="street with trees and parked cars",
+    year=2020,
+    config=config,
+    db=db,
+    clip_encoder=encoder,
+    limit=10,
+    use_faiss=False  # Use database search
+)
+results = query.execute()
 ```
 
 ### Fast search with FAISS
@@ -113,15 +159,39 @@ reranked = whiten.rerank_results(
 
 ## Architecture
 
+### Library (src/streettransformer/)
+
 ```
 streettransformer/
-├── config.py          # Configuration
-├── database.py        # DuckDB connection
-├── embedding_db.py    # Core vector storage
-├── npz_cache.py       # NPZ caching
-├── faiss_index.py     # FAISS indexing
-└── whitening.py       # PCA whitening
+├── config.py               # Configuration
+└── db/                 # Backend db setup
+    ├── database.py         # DuckDB connection
+    ├── embedding_db.py     # Core vector storage
+    ├── npz_cache.py        # NPZ caching
+    ├── faiss_index.py      # FAISS indexing
+    ├── whitening.py        # PCA whitening
+└── query/              # Query API
+    ├── clip_encoding.py    # CLIP text encoder
+    ├── base.py             # BaseQuery abstract class
+    ├── mixins.py           # Reusable query mixins
+    └── queries.py          # Concrete query implementations
 ```
+
+### Dashboard (dashboard/)
+
+```
+dashboard/
+├── backend/
+│   ├── search.py       # Search function wrappers
+│   └── results/        # Result rendering classes
+│       ├── base.py     # BaseQueryResult
+│       └── concrete.py # StateLocationResult, ChangeLocationResult
+└── frontend/
+    └── components/
+        └── helpers.py  # UI component helpers
+```
+
+The library provides core search functionality while the dashboard adds UI-specific rendering and enrichment.
 
 ## Database Schema
 

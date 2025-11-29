@@ -10,8 +10,8 @@ import pandas as pd
 import logging
 
 from ..config import Config
-from ..database import get_connection
-from ..embedding_db import EmbeddingDB
+from ..db.database import get_connection
+from ..db.embedding_db import EmbeddingDB
 
 logger = logging.getLogger(__name__)
 

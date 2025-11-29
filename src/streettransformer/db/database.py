@@ -8,7 +8,7 @@ from typing import Generator
 
 import duckdb
 
-from .config import Config
+from ..config import Config
 
 
 @contextmanager

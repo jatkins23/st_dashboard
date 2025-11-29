@@ -13,7 +13,7 @@ from dash import Input, Output, State, html
 import pandas as pd
 
 from streettransformer import Config, EmbeddingDB
-from streettransformer.database import get_connection
+from streettransformer.db.database import get_connection
 
 from .backend.search import (
     search_by_location,

@@ -40,7 +40,7 @@ except ImportError:
     faiss = None
 
 from .npz_cache import NPZCache
-from .config import Config
+from ..config import Config
 from .database import get_connection
 
 logger = logging.getLogger(__name__)

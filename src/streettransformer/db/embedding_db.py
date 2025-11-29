@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from .database import get_connection
-from .config import Config
+from ..config import Config
 
 logger = logging.getLogger(__name__)
 

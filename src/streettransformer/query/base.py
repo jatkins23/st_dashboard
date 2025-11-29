@@ -9,7 +9,7 @@ from typing import Optional, Callable
 import pandas as pd
 
 from ..config import Config
-from ..embedding_db import EmbeddingDB
+from ..db.embedding_db import EmbeddingDB
 from .mixins import DatabaseMixin, SearchMethodMixin
 
 
