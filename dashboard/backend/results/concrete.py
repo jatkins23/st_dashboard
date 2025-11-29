@@ -9,6 +9,7 @@ from typing import Optional
 
 from streettransformer.query import StateMixin, ChangeMixin
 from .base import BaseQueryResult
+from ...utils.display import enrich_results_with_streets
 
 
 class StateLocationResult(BaseQueryResult, StateMixin):
@@ -28,6 +29,7 @@ class StateLocationResult(BaseQueryResult, StateMixin):
         >>> html = result.render_accordion()  # Render as Dash accordion
     """
 
+    # TODO: this should just take in a location query?
     def __init__(
         self,
         results,
@@ -66,8 +68,7 @@ class StateLocationResult(BaseQueryResult, StateMixin):
         Returns:
             Self for method chaining
         """
-        from ..utils.display import enrich_results_with_streets
-
+        # add street names
         self.results = enrich_results_with_streets(
             self.results,
             self.db_connection_func or self.get_connection,

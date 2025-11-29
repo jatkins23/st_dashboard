@@ -142,7 +142,7 @@ def load_location_coordinates(config, db_connection_func, year: int = None, limi
     """Load location coordinates from database.
 
     Args:
-        config: Config object with database path and universe name
+        config: STConfig object with database path and universe name
         db_connection_func: Function that returns database connection
         year: Optional year filter (if None, gets one representative point per location)
         limit: Maximum number of locations to load
@@ -211,7 +211,7 @@ def get_location_details(config, db_connection_func, location_id: int) -> dict:
     """Get detailed information about a specific location.
 
     Args:
-        config: Config object
+        config: STConfig object
         db_connection_func: Function that returns database connection
         location_id: Location ID to get details for
 

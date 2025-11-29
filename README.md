@@ -57,17 +57,17 @@ python scripts/build_faiss_indexes.py --universe lion --year 2020 --index-type h
 ### Using with existing st_preprocessing database
 
 ```python
-from streettransformer import Config, EmbeddingDB, StateLocationQuery
+from streettransformer import STConfig, EmbeddingDB, StateLocationQuery
 
 # Point to your st_preprocessing database
-config = Config(
+config = STConfig(
     database_path="/Users/jon/code/st_preprocessing/data.db",
     universe_name="lion"
 )
 
 # Or use environment variable
 # export ST_DATABASE_PATH=/Users/jon/code/st_preprocessing/data.db
-config = Config(universe_name="lion")  # Will read from ST_DATABASE_PATH
+config = STConfig(universe_name="lion")  # Will read from ST_DATABASE_PATH
 
 # Initialize database
 db = EmbeddingDB(config)
@@ -125,9 +125,9 @@ results = query.execute()
 ### Fast search with FAISS
 
 ```python
-from streettransformer import Config, FAISSIndexer
+from streettransformer import STConfig, FAISSIndexer
 
-config = Config(database_path="data.db", universe_name="lion")
+config = STConfig(database_path="data.db", universe_name="lion")
 indexer = FAISSIndexer(config)
 
 # Build index (first time only)
@@ -140,9 +140,9 @@ results = indexer.search(query_vector, k=10, year=2020)
 ### Whitening for better retrieval
 
 ```python
-from streettransformer import Config, WhiteningTransform
+from streettransformer import STConfig, WhiteningTransform
 
-config = Config(database_path="data.db", universe_name="lion")
+config = STConfig(database_path="data.db", universe_name="lion")
 whiten = WhiteningTransform(config)
 
 # Compute statistics (first time only)

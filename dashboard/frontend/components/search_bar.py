@@ -79,7 +79,7 @@ def _create_state_search_fields(available_years: list):
             dcc.Checklist(
                 id='use-faiss-checkbox',
                 options=[{'label': ' FAISS', 'value': 'faiss'}],
-                value=[],
+                value=[' FAISS'],
                 style={'marginTop': '20px'}
             ),
         ], className='search-form-field', style={'minWidth': '100px'}),

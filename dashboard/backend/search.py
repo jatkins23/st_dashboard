@@ -4,7 +4,8 @@ import logging
 import pandas as pd
 
 from ..utils.display import enrich_results_with_streets, enrich_change_results_with_images
-from streettransformer import StateLocationQuery, StateTextQuery, ChangeLocationQuery, CLIPEncoder
+from streettransformer.query.queries.ask import ImageToImageStateQuery, ImageToImageChangeQuery, TextToImageStateQuery
+from streettransformer.query.clip_embedding import CLIPEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ def search_by_location(
     """Search for similar locations (thin wrapper around StateLocationQuery).
 
     Args:
-        config: StreetTransformer Config object
+        config: StreetTransformer STConfig object
         db: EmbeddingDB instance
         db_connection_func: Database connection function
         location_id: Query location ID
@@ -75,7 +76,7 @@ def search_by_text(
     """Search for images matching text description (thin wrapper around StateTextQuery).
 
     Args:
-        config: StreetTransformer Config object
+        config: StreetTransformer STConfig object
         db: EmbeddingDB instance
         db_connection_func: Database connection function
         text_query: Text description
@@ -130,7 +131,7 @@ def search_change_patterns(
     """Search for locations with similar change patterns (thin wrapper around ChangeLocationQuery).
 
     Args:
-        config: StreetTransformer Config object
+        config: StreetTransformer STConfig object
         db: EmbeddingDB instance
         db_connection_func: Database connection function
         location_id: Reference location
@@ -170,7 +171,7 @@ def get_embedding_stats(db, config) -> dict:
 
     Args:
         db: EmbeddingDB instance
-        config: Config instance
+        config: STConfig instance
 
     Returns:
         Dictionary with statistics

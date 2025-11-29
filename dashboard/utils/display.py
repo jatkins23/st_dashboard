@@ -7,6 +7,10 @@ from PIL import Image
 from io import BytesIO
 import base64
 
+NO_STREETS: bool = True
+ADDTNL_STREETS: bool = True
+BOROUGH: bool = True
+
 logger = logging.getLogger(__name__)
 
 def encode_image_to_base64(image_path: Path, max_width: int = 400) -> str:
@@ -41,6 +45,15 @@ def encode_image_to_base64(image_path: Path, max_width: int = 400) -> str:
         logger.error(f"Error encoding image {image_path}: {e}")
         return None
 
+def _querify_list(col_list: list[str], prefix: str, indent: int = 0, newline: bool = True):
+    prefixed_list = [f'{prefix}.{c}' for c in col_list]
+    sep = ''
+    if newline:
+        sep = sep + '\n'
+    sep = sep + ' ' * indent
+
+    return sep.join(prefixed_list)
+
 def enrich_results_with_streets(results: pd.DataFrame, db_connection, universe_name: str) -> pd.DataFrame:
     """Enrich results with street names from locations table.
 
@@ -57,16 +70,18 @@ def enrich_results_with_streets(results: pd.DataFrame, db_connection, universe_n
         return results
 
     try:
-        # Build column list dynamically based on what's in results
-        base_cols = ['r.location_id', 'r.location_key', 'r.similarity', 'r.image_path']
+        results_cols = results.columns.to_list()
+        results_cols_query = _querify_list(results_cols, prefix = 'r', indent=20)
 
-        # Check for year columns
-        if 'year' in results.columns:
-            base_cols.append('r.year')
-        if 'year_from' in results.columns:
-            base_cols.extend(['r.year_from', 'r.year_to'])
-
-        col_list = ',\n                    '.join(base_cols)
+        streets_cols = []
+        if not NO_STREETS:
+            streets_cols = streets_cols.extend(['street1','street2'])
+        if ADDTNL_STREETS:
+            streets_cols = streets_cols.append('additional_streets')
+        if BOROUGH:
+            streets_cols = streets_cols.append('borough')
+        
+        streets_cols_query = _querify_list(streets_cols, prefix = 'l', indent=20)
 
         with db_connection as con:
             # Register results as temp table
@@ -75,10 +90,8 @@ def enrich_results_with_streets(results: pd.DataFrame, db_connection, universe_n
             # Join with locations table - explicitly select columns to avoid array issues
             enriched = con.execute(f"""
                 SELECT
-                    {col_list},
-                    l.street1,
-                    l.street2,
-                    l.additional_streets
+                    {results_cols_query},
+                    {streets_cols_query}
                 FROM _temp_results r
                 LEFT JOIN {universe_name}.locations l
                     ON r.location_id = l.location_id

@@ -10,7 +10,7 @@ from typing import Optional, Callable
 from pathlib import Path
 import pandas as pd
 
-from streettransformer import Config, EmbeddingDB
+from streettransformer import STConfig, EmbeddingDB
 from streettransformer.query import DatabaseMixin
 
 
@@ -77,7 +77,7 @@ class BaseQueryResult(ABC, DatabaseMixin, DisplayMixin):
         db_connection_func: Optional database connection factory
     """
     results: pd.DataFrame
-    config: Config
+    config: STConfig
     db: EmbeddingDB
     db_connection_func: Optional[Callable] = None
 

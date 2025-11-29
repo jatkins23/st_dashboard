@@ -131,7 +131,7 @@ cp /Users/jon/code/st_preprocessing/scripts/embedding_dashboard.py dashboard/app
 # from st_preprocessing.embeddings import EmbeddingLoader
 # from st_preprocessing.db.db import duckdb_connection
 # ↓
-# from streettransformer import Config, EmbeddingDB
+# from streettransformer import STConfig, EmbeddingDB
 # from streettransformer.database import get_connection
 ```
 

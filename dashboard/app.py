@@ -12,15 +12,12 @@ from pathlib import Path
 from dash import Input, Output, State, html
 import pandas as pd
 
-from streettransformer import Config, EmbeddingDB
+from streettransformer import STConfig, EmbeddingDB
 from streettransformer.db.database import get_connection
+from streettransformer.query.queries.ask import ImageToImageStateQuery, ImageToImageChangeQuery, TextToImageStateQuery
+from streettransformer.query.clip_embedding import CLIPEncoder
 
-from .backend.search import (
-    search_by_location,
-    search_by_text,
-    search_change_patterns,
-    get_embedding_stats
-)
+from .backend.search import get_embedding_stats  # Keep stats function
 from .frontend.layout_v2 import create_app_with_styling, create_clean_layout
 from .frontend.components.search_module import (
     create_search_bar,
@@ -41,7 +38,6 @@ CONFIG = None
 DB = None
 AVAILABLE_YEARS = []
 ALL_LOCATIONS_DF = None
-
 
 def get_location_basic_info(config, location_id: int):
     """Get basic info about a location."""
@@ -131,32 +127,49 @@ def setup_callbacks(app):
             use_faiss_enabled = 'faiss' in (use_faiss or [])
             use_whitening_enabled = 'whitening' in (use_whitening or [])
 
-            results = search_by_location(
+            # Create and execute query using new architecture
+            query = ImageToImageStateQuery(
                 config=CONFIG,
                 db=DB,
-                db_connection_func=lambda: get_connection(CONFIG.database_path, read_only=True),
                 location_id=location_id,
                 year=year,
-                target_year=target_year,
+                target_years=[target_year] if target_year else None,
                 limit=limit,
                 use_faiss=use_faiss_enabled,
-                use_whitening=use_whitening_enabled
+                use_whitening=use_whitening_enabled,
+                remove_self=True
             )
 
-            if results.empty:
+            results_set = query.search()
+
+            if len(results_set) == 0:
                 return (
                     html.Div(f"No results found", className='warning-message'),
                     {**panel_style, 'display': 'block'},
                     []
                 )
 
-            result_location_ids = results['location_id'].tolist()
+            # Enrich results with street names
+            with get_connection(CONFIG.database_path, read_only=True) as con:
+                for result in results_set:
+                    result.enrich_street_names(con, CONFIG.universe_name)
+
+            # Convert to DataFrame for frontend compatibility
+            results_df = results_set.df
+
+            # Rename street_names to additional_streets for formatter compatibility
+            if 'street_names' in results_df.columns:
+                results_df['additional_streets'] = results_df['street_names'].apply(
+                    lambda x: ', '.join(x) if x else None
+                )
+
+            result_location_ids = [r.location_id for r in results_set]
 
             return (
                 html.Div([
-                    html.H4(f"Top {len(results)} similar locations:",
+                    html.H4(f"Top {len(results_set)} similar locations:",
                            style={'color': COLORS['success'], 'marginBottom': 15, 'fontSize': '16px'}),
-                    format_results_accordion(results)
+                    format_results_accordion(results_df)
                 ]),
                 {**panel_style, 'display': 'block'},
                 result_location_ids
@@ -164,6 +177,167 @@ def setup_callbacks(app):
 
         except Exception as e:
             logger.error(f"Search error: {e}", exc_info=True)
+            return (
+                html.Div(f"Error: {str(e)}", className='error-message'),
+                {**panel_style, 'display': 'block'},
+                []
+            )
+
+    @app.callback(
+        Output('results-content', 'children', allow_duplicate=True),
+        Output('results-panel', 'style', allow_duplicate=True),
+        Output('result-locations', 'data', allow_duplicate=True),
+        Input('text-search-btn', 'n_clicks'),
+        State('text-query-input', 'value'),
+        State('text-year-dropdown', 'value'),
+        State('text-limit-dropdown', 'value'),
+        State('text-use-faiss-checkbox', 'value'),
+        State('text-use-whitening-checkbox', 'value'),
+        State('results-panel', 'style'),
+        prevent_initial_call=True
+    )
+    def handle_text_search(n_clicks, text_query, year, limit, use_faiss, use_whitening, panel_style):
+        """Handle text-based search."""
+        if not text_query or not text_query.strip():
+            return html.Div("Please enter a text query", className='error-message'), panel_style, []
+
+        try:
+            use_faiss_enabled = 'faiss' in (use_faiss or [])
+            use_whitening_enabled = 'whitening' in (use_whitening or [])
+
+            # Create CLIP encoder for text queries
+            clip_encoder = CLIPEncoder()
+
+            # Create and execute query using new architecture
+            query = TextToImageStateQuery(
+                config=CONFIG,
+                db=DB,
+                text_query=text_query.strip(),
+                year=year,
+                target_years=[year] if year else None,
+                limit=limit,
+                use_faiss=use_faiss_enabled,
+                use_whitening=use_whitening_enabled,
+                clip_encoder=clip_encoder
+            )
+
+            results_set = query.execute()  # Note: uses .execute() not .search()
+
+            if len(results_set) == 0:
+                return (
+                    html.Div(f"No results found for '{text_query}'", className='warning-message'),
+                    {**panel_style, 'display': 'block'},
+                    []
+                )
+
+            # Enrich results with street names
+            with get_connection(CONFIG.database_path, read_only=True) as con:
+                for result in results_set:
+                    result.enrich_street_names(con, CONFIG.universe_name)
+
+            # Convert to DataFrame for frontend compatibility
+            results_df = results_set.df
+
+            # Rename street_names to additional_streets for formatter compatibility
+            if 'street_names' in results_df.columns:
+                results_df['additional_streets'] = results_df['street_names'].apply(
+                    lambda x: ', '.join(x) if x else None
+                )
+
+            result_location_ids = [r.location_id for r in results_set]
+
+            return (
+                html.Div([
+                    html.H4(f"Top {len(results_set)} matches for '{text_query}':",
+                           style={'color': COLORS['success'], 'marginBottom': 15, 'fontSize': '16px'}),
+                    format_results_accordion(results_df)
+                ]),
+                {**panel_style, 'display': 'block'},
+                result_location_ids
+            )
+
+        except Exception as e:
+            logger.error(f"Text search error: {e}", exc_info=True)
+            return (
+                html.Div(f"Error: {str(e)}", className='error-message'),
+                {**panel_style, 'display': 'block'},
+                []
+            )
+
+    @app.callback(
+        Output('results-content', 'children', allow_duplicate=True),
+        Output('results-panel', 'style', allow_duplicate=True),
+        Output('result-locations', 'data', allow_duplicate=True),
+        Input('change-search-btn', 'n_clicks'),
+        State('change-location-id-input', 'value'),
+        State('year-from-dropdown', 'value'),
+        State('year-to-dropdown', 'value'),
+        State('change-limit-dropdown', 'value'),
+        State('results-panel', 'style'),
+        prevent_initial_call=True
+    )
+    def handle_change_search(n_clicks, location_id, year_from, year_to, limit, panel_style):
+        """Handle change pattern search."""
+        if not location_id or not year_from or not year_to:
+            return html.Div("Please enter location ID, from year, and to year", className='error-message'), panel_style, []
+
+        try:
+            # Create and execute query using new architecture
+            query = ImageToImageChangeQuery(
+                config=CONFIG,
+                db=DB,
+                location_id=location_id,
+                year_from=year_from,
+                year_to=year_to,
+                limit=limit,
+                remove_self=True
+            )
+
+            results_set = query.search()
+
+            if len(results_set) == 0:
+                return (
+                    html.Div(f"No change patterns found", className='warning-message'),
+                    {**panel_style, 'display': 'block'},
+                    []
+                )
+
+            # Enrich results with street names and image paths
+            with get_connection(CONFIG.database_path, read_only=True) as con:
+                for result in results_set:
+                    result.enrich_street_names(con, CONFIG.universe_name)
+                    # Enrich with image paths for both years
+                    result.enrich_image_paths(con, CONFIG.universe_name)
+
+            # Convert to DataFrame for frontend compatibility
+            results_df = results_set.df
+
+            # Rename fields for formatter compatibility
+            if 'street_names' in results_df.columns:
+                results_df['additional_streets'] = results_df['street_names'].apply(
+                    lambda x: ', '.join(x) if x else None
+                )
+
+            # Rename image path fields for change formatter
+            if 'start_image_path' in results_df.columns:
+                results_df['image_path_from'] = results_df['start_image_path']
+            if 'end_image_path' in results_df.columns:
+                results_df['image_path_to'] = results_df['end_image_path']
+
+            result_location_ids = [r.location_id for r in results_set]
+
+            return (
+                html.Div([
+                    html.H4(f"Top {len(results_set)} similar change patterns ({year_from} → {year_to}):",
+                           style={'color': COLORS['success'], 'marginBottom': 15, 'fontSize': '16px'}),
+                    format_change_results_accordion(results_df)
+                ]),
+                {**panel_style, 'display': 'block'},
+                result_location_ids
+            )
+
+        except Exception as e:
+            logger.error(f"Change search error: {e}", exc_info=True)
             return (
                 html.Div(f"Error: {str(e)}", className='error-message'),
                 {**panel_style, 'display': 'block'},
@@ -274,7 +448,7 @@ def main():
     )
 
     # Initialize config and database
-    CONFIG = Config(
+    CONFIG = STConfig(
         database_path=args.db,
         universe_name=args.universe
     )
