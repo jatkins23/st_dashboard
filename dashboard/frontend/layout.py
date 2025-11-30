@@ -1,313 +1,208 @@
-"""Main dashboard layout and app creation."""
+"""Simple Bootstrap-based dashboard layout."""
 
 from dash import dcc, html
-from ..config import COLORS
+import dash_bootstrap_components as dbc
 
 
-def create_app_with_styling():
-    """Create Dash app with dark mode styling.
-
-    Returns:
-        Tuple of (app, index_string) where index_string contains CSS styling
-    """
+def create_app():
+    """Create Dash app with Bootstrap theme."""
     import dash
-    app = dash.Dash(__name__, suppress_callback_exceptions=True)
-
-    # Dark mode styling
-    index_string = '''
-    <!DOCTYPE html>
-    <html>
-        <head>
-            {%metas%}
-            <title>{%title%}</title>
-            {%favicon%}
-            {%css%}
-            <style>
-                body {
-                    background-color: ''' + COLORS['background'] + ''';
-                    color: ''' + COLORS['text'] + ''';
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                    margin: 0;
-                    padding: 20px;
-                }
-                .accordion-item {
-                    background-color: ''' + COLORS['card'] + ''';
-                    border: 1px solid ''' + COLORS['border'] + ''';
-                    border-radius: 6px;
-                    margin-bottom: 10px;
-                    overflow: hidden;
-                }
-                .accordion-header {
-                    padding: 15px 20px;
-                    cursor: pointer;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background-color: ''' + COLORS['card'] + ''';
-                    transition: background-color 0.2s;
-                }
-                .accordion-header:hover {
-                    background-color: ''' + COLORS['input-bg'] + ''';
-                }
-                .accordion-content {
-                    padding: 20px;
-                    border-top: 1px solid ''' + COLORS['border'] + ''';
-                    display: none;
-                }
-                .accordion-content.active {
-                    display: block;
-                }
-                .similarity-badge {
-                    background-color: ''' + COLORS['primary'] + ''';
-                    color: white;
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    font-size: 14px;
-                    font-weight: 500;
-                }
-                .location-info {
-                    color: ''' + COLORS['text-secondary'] + ''';
-                    font-size: 14px;
-                    margin-top: 5px;
-                }
-                .image-container {
-                    margin-top: 15px;
-                    text-align: center;
-                }
-                .image-container img {
-                    max-width: 100%;
-                    border-radius: 4px;
-                    border: 1px solid ''' + COLORS['border'] + ''';
-                }
-                input, select, .Select-control {
-                    background-color: ''' + COLORS['input-bg'] + ''' !important;
-                    color: ''' + COLORS['text'] + ''' !important;
-                    border: 1px solid ''' + COLORS['border'] + ''' !important;
-                    border-radius: 4px !important;
-                    padding: 8px 12px !important;
-                }
-                button {
-                    background-color: ''' + COLORS['primary'] + ''';
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                }
-                button:hover {
-                    background-color: ''' + COLORS['primary-hover'] + ''';
-                }
-                .tab {
-                    background-color: ''' + COLORS['card'] + ''' !important;
-                    color: ''' + COLORS['text'] + ''' !important;
-                    border: 1px solid ''' + COLORS['border'] + ''' !important;
-                }
-                .tab--selected {
-                    background-color: ''' + COLORS['primary'] + ''' !important;
-                    color: white !important;
-                }
-                label {
-                    color: ''' + COLORS['text-secondary'] + ''';
-                    font-size: 14px;
-                    font-weight: 500;
-                    display: block;
-                    margin-bottom: 6px;
-                }
-                .error-message {
-                    color: ''' + COLORS['error'] + ''';
-                    padding: 12px;
-                    background-color: rgba(244, 135, 113, 0.1);
-                    border-radius: 4px;
-                    border-left: 3px solid ''' + COLORS['error'] + ''';
-                }
-                .warning-message {
-                    color: ''' + COLORS['warning'] + ''';
-                    padding: 12px;
-                    background-color: rgba(206, 145, 120, 0.1);
-                    border-radius: 4px;
-                    border-left: 3px solid ''' + COLORS['warning'] + ''';
-                }
-                .success-message {
-                    color: ''' + COLORS['success'] + ''';
-                }
-                h1, h2, h3, h4 {
-                    color: ''' + COLORS['text'] + ''';
-                }
-
-                /* Search form horizontal layout */
-                .search-form-row {
-                    display: flex;
-                    gap: 15px;
-                    align-items: flex-end;
-                    flex-wrap: wrap;
-                }
-
-                .search-form-field {
-                    display: flex;
-                    flex-direction: column;
-                    min-width: 120px;
-                }
-
-                .search-form-field.flex-1 {
-                    flex: 1;
-                }
-
-                .search-form-field label {
-                    margin-bottom: 4px;
-                    font-size: 13px;
-                }
-            </style>
-        </head>
-        <body>
-            {%app_entry%}
-            <footer>
-                {%config%}
-                {%scripts%}
-                {%renderer%}
-            </footer>
-            <script>
-                // Simple accordion toggle
-                document.addEventListener('click', function(e) {
-                    if (e.target && e.target.classList.contains('accordion-header')) {
-                        const content = e.target.nextElementSibling;
-                        content.classList.toggle('active');
-                    }
-                });
-            </script>
-        </body>
-    </html>
-    '''
-
-    return app, index_string
+    return dash.Dash(
+        __name__,
+        suppress_callback_exceptions=True,
+        external_stylesheets=[dbc.themes.DARKLY]
+    )
 
 
 def create_layout(universe_name: str):
-    """Create main dashboard layout with map and floating panels.
+    """Create simple layout with state search.
 
     Args:
         universe_name: Name of the universe being explored
 
     Returns:
-        Dash HTML Div with complete layout
+        Bootstrap Container with layout
     """
-    return html.Div([
-        # Search bar container at top
-        html.Div([
-            # Title and tabs row
-            html.Div([
-                html.H2(f"Image Embedding Explorer - {universe_name}",
-                       style={'margin': 0, 'color': COLORS['text'], 'fontSize': '20px'}),
-                dcc.Tabs(id='tabs', value='state', children=[
-                    dcc.Tab(label='State', value='state', className='tab'),
-                    dcc.Tab(label='Text', value='text', className='tab'),
-                    dcc.Tab(label='Change', value='change', className='tab'),
-                    dcc.Tab(label='Stats', value='stats', className='tab'),
-                ], style={'marginLeft': '20px'}),
-            ], style={
-                'display': 'flex',
-                'alignItems': 'center',
-                'marginBottom': '15px'
-            }),
+    return dbc.Container([
+        # Header
+        dbc.Row([
+            dbc.Col([
+                html.H3(f"Street Transformer Dashboard - {universe_name}", className='text-light mb-3')
+            ])
+        ], className='mt-3'),
 
-            # Search fields container (populated by callback based on tab)
-            html.Div(id='search-fields-container', style={'marginBottom': '10px'}),
+        # Search card
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader("Image-to-Image State Search", className='fw-bold'),
+                    dbc.CardBody([
+                        html.Div(id='search-form')
+                    ])
+                ])
+            ])
+        ], className='mb-3'),
 
-        ], style={
-            'position': 'fixed',
-            'top': 0,
-            'left': 0,
-            'right': 0,
-            'backgroundColor': COLORS['background'],
-            'padding': '15px 20px',
-            'borderBottom': f"1px solid {COLORS['border']}",
-            'zIndex': 1000,
-            'boxShadow': '0 2px 8px rgba(0,0,0,0.3)'
-        }),
+        # Map with floating panels
+        dbc.Row([
+            # Map container with floating results panel
+            dbc.Col([
+                html.Div([
+                    # Map
+                    dcc.Graph(
+                        id='main-map',
+                        style={'height': '60vh'},
+                        config={'displayModeBar': False, 'scrollZoom': True}
+                    ),
+                    # Floating results panel
+                    results_panel(),
+                    details_panel()
+                ], style={'position': 'relative'})
+            ]),
 
-        # Map container (full page below search bar)
-        html.Div([
-            dcc.Graph(
-                id='location-map',
-                style={'width': '100%', 'height': '100%'},
-                config={'displayModeBar': False}
+        ], className='mb-3'),
+
+        # Data stores
+        dcc.Store(id='query-location-id'),
+        dcc.Store(id='result-locations'),
+
+    ], fluid=True)
+
+def results_panel():
+    component = html.Div([
+        dbc.Card([
+            dbc.CardHeader([
+                html.Div([
+                    html.Span("Search Results", className='fw-bold'),
+                    dbc.Button(
+                        html.I(className='fas fa-chevron-down'),
+                        id='results-collapse-btn',
+                        color='link',
+                        size='sm',
+                        className='ms-auto p-0'
+                    )
+                ], className='d-flex align-items-center justify-content-between')
+            ]),
+            dbc.Collapse([
+                dbc.CardBody([
+                    html.Div(id='results-content')
+                ], style={'maxHeight': '100%', 'overflowY': 'auto'})
+            ], id='results-collapse', is_open=True)
+        ], id='results-card', style={'display': 'none'})
+    ], style={
+        'position': 'absolute',
+        'top': '10px',
+        'right': '10px',
+        'width': '25%',
+        'maxHeight': 'calc(80vh - 20px)',
+        'overflowY': 'auto',
+        'zIndex': 1000
+    })
+    return component
+
+def details_panel():
+    component = html.Div([
+        dbc.Card([
+            dbc.CardHeader([
+                html.Div([
+                    html.Span("Location Detail", className='fw-bold'),
+                    dbc.Button(
+                        html.I(className='fas fa-chevron-down'),
+                        id='details-collapse-btn',
+                        color='link', size='sm', className='ms-auto p-0'
+                    )
+                ], className='d-flex align-items-center justify-content-between')
+            ]),
+            dbc.Collapse([
+                dbc.CardBody([
+                    html.Div(id='details-content')
+                ], style={'maxHeight': '100%', 'overflowY': 'auto'})
+            ], id='details-collapse', is_open=True)
+        ], id='details-card', style={'display': 'none'})
+    ], style={
+        'position': 'absolute',
+        'top': '10px',
+        'left': '10px',
+        'width': '25%',
+        'maxHeight': 'calc(80vh - 20px)',
+        'overflowY': 'auto',
+        'zIndex': 1000
+    })
+    
+    return component
+
+
+def create_search_form(available_years: list):
+    """Create search form for ImageToImage state search.
+
+    Args:
+        available_years: List of available years
+
+    Returns:
+        Bootstrap form row with search fields
+    """
+    return dbc.Row([
+        dbc.Col([
+            dbc.Label("Location ID", size='sm'),
+            dbc.Input(
+                id='location-id-input',
+                type='number',
+                placeholder='Enter location ID',
+                size='sm'
+            )
+        ], width=2),
+
+        dbc.Col([
+            dbc.Label("Year", size='sm'),
+            dcc.Dropdown(
+                id='year-dropdown',
+                options=[{'label': str(y), 'value': y} for y in available_years],
+                placeholder='Select year'
+            )
+        ], width=2),
+
+        dbc.Col([
+            dbc.Label("Target Year (optional)", size='sm'),
+            dcc.Dropdown(
+                id='target-year-dropdown',
+                options=[{'label': 'All', 'value': None}] +
+                        [{'label': str(y), 'value': y} for y in available_years],
+                placeholder='All years'
+            )
+        ], width=2),
+
+        dbc.Col([
+            dbc.Label("Limit", size='sm'),
+            dcc.Dropdown(
+                id='limit-dropdown',
+                options=[{'label': str(i), 'value': i} for i in [5, 10, 20, 50]],
+                value=10
+            )
+        ], width=1),
+
+        dbc.Col([
+            dbc.Label("Options", size='sm'),
+            dbc.Checklist(
+                id='use-faiss-checkbox',
+                options=[{'label': ' FAISS', 'value': 'faiss'}],
+                value=['faiss'],
+                switch=True
             ),
+            dbc.Checklist(
+                id='use-whitening-checkbox',
+                options=[{'label': ' Whitening', 'value': 'whitening'}],
+                value=[],
+                switch=True
+            )
+        ], width=2),
 
-            # Floating Results Panel (left side)
-            html.Div([
-                html.Div([
-                    html.Div([
-                        html.H3("Results", style={'margin': 0, 'fontSize': '18px', 'color': COLORS['text']}),
-                        html.Button('×', id='close-results-btn',
-                                  style={
-                                      'background': 'none',
-                                      'border': 'none',
-                                      'fontSize': '24px',
-                                      'cursor': 'pointer',
-                                      'color': COLORS['text-secondary'],
-                                      'padding': '0',
-                                      'width': '30px',
-                                      'height': '30px'
-                                  })
-                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '15px'}),
-                    html.Div(id='results-panel-content', style={'overflowY': 'auto', 'maxHeight': 'calc(100% - 50px)'})
-                ], style={'padding': '20px', 'height': '100%', 'display': 'flex', 'flexDirection': 'column'})
-            ], id='results-panel', style={
-                'position': 'absolute',
-                'left': '20px',
-                'top': '20px',
-                'bottom': '20px',
-                'width': '400px',
-                'backgroundColor': COLORS['card'],
-                'borderRadius': '8px',
-                'boxShadow': '0 4px 12px rgba(0,0,0,0.5)',
-                'display': 'none',  # Hidden by default
-                'zIndex': 100
-            }),
+        dbc.Col([
+            dbc.Button(
+                'Search',
+                id='search-btn',
+                color='primary',
+                className='mt-4'
+            )
+        ], width=1),
 
-            # Floating Detail Panel (right side)
-            html.Div([
-                html.Div([
-                    html.Div([
-                        html.H3("Location Details", style={'margin': 0, 'fontSize': '18px', 'color': COLORS['text']}),
-                        html.Button('×', id='close-details-btn',
-                                  style={
-                                      'background': 'none',
-                                      'border': 'none',
-                                      'fontSize': '24px',
-                                      'cursor': 'pointer',
-                                      'color': COLORS['text-secondary'],
-                                      'padding': '0',
-                                      'width': '30px',
-                                      'height': '30px'
-                                  })
-                    ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '15px'}),
-                    html.Div(id='details-panel-content', style={'overflowY': 'auto', 'maxHeight': 'calc(100% - 50px)'})
-                ], style={'padding': '20px', 'height': '100%', 'display': 'flex', 'flexDirection': 'column'})
-            ], id='details-panel', style={
-                'position': 'absolute',
-                'right': '20px',
-                'top': '20px',
-                'bottom': '20px',
-                'width': '450px',
-                'backgroundColor': COLORS['card'],
-                'borderRadius': '8px',
-                'boxShadow': '0 4px 12px rgba(0,0,0,0.5)',
-                'display': 'none',  # Hidden by default
-                'zIndex': 100
-            }),
-
-        ], style={
-            'position': 'fixed',
-            'top': '130px',  # Below search bar
-            'left': 0,
-            'right': 0,
-            'bottom': 0,
-            'backgroundColor': COLORS['background']
-        }),
-
-        # Hidden stores for state management
-        dcc.Store(id='selected-location-id'),
-        dcc.Store(id='result-location-ids'),
-        dcc.Store(id='all-locations-data'),
-
-    ], style={'height': '100vh', 'overflow': 'hidden'})
+    ], className='g-3', align='end')
