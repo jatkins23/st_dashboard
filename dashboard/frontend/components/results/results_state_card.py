@@ -23,7 +23,7 @@ class ResultsStateCard(BaseComponent):
         self.year = res.year
         self.image_path = res.image_path
 
-    def _content_element(var:str, label:str):
+    def _content_element(self, var:str, label:str):
         elem = html.Div([
             html.Small([
                 html.Strong(f'{label}: '),
@@ -60,9 +60,10 @@ class ResultsStateCard(BaseComponent):
 
         # Location key if different from title
         if self.location_key and self.location_key != self.title:
-            content.append(
-                html.Small([html.Strong("Location Key: "), self.location_key], className='text-muted d-block mb-2')
-            )
+            content.append(self._content_element('Location Key', self.location_key))
+            # content.append(
+            #     html.Small([html.Strong("Location Key: "), self.location_key], className='text-muted d-block mb-2')
+            # )
 
         # Image if provided
         if self.image_path:

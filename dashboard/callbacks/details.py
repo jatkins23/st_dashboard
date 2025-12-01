@@ -1,14 +1,18 @@
 """Location details callbacks."""
 
 import logging
-from pathlib import Path
 
 from dash import Input, Output, html
 import dash_bootstrap_components as dbc
 
 from streettransformer.db.database import get_connection
 
-from ..utils.display import encode_image_to_base64
+from ..frontend.components.details import (
+    DetailsStatsViewer,
+    DetailsImageViewer,
+    DetailsDocumentViewer,
+    DetailsProjectViewer
+)
 from .. import state
 
 logger = logging.getLogger(__name__)
@@ -27,9 +31,10 @@ def register_details_callbacks(app):
         Output('query-location-id', 'data'),
         Input('location-id-input', 'value'),
         Input('main-map', 'clickData'),
+        Input('query-year', 'data'),
         prevent_initial_call=False
     )
-    def update_details(location_id, click_data):
+    def update_details(location_id, click_data, query_year):
         """Update details panel when location is selected."""
         # Handle map click
         if click_data and 'points' in click_data and len(click_data['points']) > 0:
@@ -74,44 +79,29 @@ def register_details_callbacks(app):
                     FROM {state.CONFIG.universe_name}.image_embeddings
                     WHERE location_id = {location_id}
                         AND image_path IS NOT NULL
-                    ORDER BY year DESC
+                    ORDER BY year ASC
                     LIMIT 5
                 """
                 images_df = con.execute(image_query).df()
 
-                # Create details display
-                details = [
-                    html.H6(f"Location {location_id}", className='fw-bold'),
-                    html.P(street_name, className='text-muted'),
-                    html.Hr()
-                ]
+                # Create viewer instances with data and combine their content
+                details = []
 
-                if not images_df.empty:
-                    # Create carousel items
-                    carousel_items = []
-                    for _, img_row in images_df.iterrows():
-                        img_path = Path(img_row['image_path'])
-                        if img_path.exists():
-                            img_base64 = encode_image_to_base64(img_path)
-                            if img_base64:
-                                carousel_items.append({
-                                    'key': str(img_row['year']),
-                                    'src': img_base64,
-                                    'header': f"Year {img_row['year']}",
-                                    'caption': ''
-                                })
+                # 1. Stats/Header Section
+                stats_viewer = DetailsStatsViewer(location_id=location_id, street_name=street_name)
+                details.extend(stats_viewer.content)
 
-                    if carousel_items:
-                        details.append(html.H6("Images:", className='mt-3 mb-2'))
-                        details.append(
-                            dbc.Carousel(
-                                items=carousel_items,
-                                controls=True,
-                                indicators=True,
-                                interval=None,
-                                className='mb-3'
-                            )
-                        )
+                # 2. Image Carousel Section
+                image_viewer = DetailsImageViewer(images_df=images_df, query_year=query_year)
+                details.extend(image_viewer.content)
+
+                # 3. Document Section (stub)
+                document_viewer = DetailsDocumentViewer(location_id=location_id)
+                details.extend(document_viewer.content)
+
+                # 4. Project Section (stub)
+                project_viewer = DetailsProjectViewer(location_id=location_id)
+                details.extend(project_viewer.content)
 
                 return (
                     html.Div(details),

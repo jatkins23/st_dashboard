@@ -3,6 +3,7 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 from .components.results.results_panel import ResultsPanel
+from .components.details.details_panel import DetailsPanel
 
 
 def create_app():
@@ -62,7 +63,8 @@ def create_layout(universe_name: str):
                     ),
                     # Floating results panel
                     ResultsPanel()(),
-                    details_panel()
+                    # Floating details panel
+                    DetailsPanel()()
                 ], style={'position': 'relative'})
             ]),
 
@@ -70,61 +72,10 @@ def create_layout(universe_name: str):
 
         # Data stores
         dcc.Store(id='query-location-id'),
+        dcc.Store(id='query-year'),
         dcc.Store(id='result-locations'),
 
     ], fluid=True)
-
-def results_panel():
-    component = html.Div([
-        dbc.Card([
-            dbc.CardHeader("Search Results", className='fw-bold'),
-            dbc.Collapse([
-                dbc.CardBody([
-                    html.Div(id='results-content')
-                ], style={'maxHeight': '100%', 'overflowY': 'auto'})
-            ], id='results-collapse', is_open=True)
-        ], id='results-card', style={'display': 'none'})
-    ], style={
-        'position': 'absolute',
-        'top': '10px',
-        'right': '10px',
-        'width': '25%',
-        'maxHeight': 'calc(80vh - 20px)',
-        'overflowY': 'auto',
-        'zIndex': 1000
-    })
-    return component
-
-def details_panel():
-    component = html.Div([
-        dbc.Card([
-            dbc.CardHeader([
-                html.Div([
-                    html.Span("Location Detail", className='fw-bold'),
-                    dbc.Button(
-                        html.I(className='fas fa-chevron-down'),
-                        id='details-collapse-btn',
-                        color='link', size='sm', className='ms-auto p-0'
-                    )
-                ], className='d-flex align-items-center justify-content-between')
-            ]),
-            dbc.Collapse([
-                dbc.CardBody([
-                    html.Div(id='details-content')
-                ], style={'maxHeight': '100%', 'overflowY': 'auto'})
-            ], id='details-collapse', is_open=True)
-        ], id='details-card', style={'display': 'none'})
-    ], style={
-        'position': 'absolute',
-        'top': '10px',
-        'left': '10px',
-        'width': '25%',
-        'maxHeight': 'calc(80vh - 20px)',
-        'overflowY': 'auto',
-        'zIndex': 1000
-    })
-    
-    return component
 
 
 def create_search_form(available_years: list):

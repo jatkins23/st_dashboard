@@ -25,6 +25,7 @@ def register_search_callbacks(app):
         Output('results-content', 'children'),
         Output('results-card', 'style'),
         Output('result-locations', 'data'),
+        Output('query-year', 'data'),
         Input('search-btn', 'n_clicks'),
         State('location-id-input', 'value'),
         State('year-dropdown', 'value'),
@@ -40,7 +41,8 @@ def register_search_callbacks(app):
             return (
                 dbc.Alert("Please enter location ID and year", color='warning'),
                 {'display': 'block'},
-                []
+                [],
+                None
             )
 
         try:
@@ -66,7 +68,8 @@ def register_search_callbacks(app):
                 return (
                     dbc.Alert(f"No results found", color='info'),
                     {'display': 'block'},
-                    []
+                    [],
+                    year
                 )
 
             # Enrich results with street names
@@ -82,7 +85,8 @@ def register_search_callbacks(app):
             return (
                 results_panel.content,
                 {'display': 'block'},
-                result_location_ids
+                result_location_ids,
+                year
             )
 
         except Exception as e:
@@ -90,5 +94,6 @@ def register_search_callbacks(app):
             return (
                 dbc.Alert(f"Error: {str(e)}", color='danger'),
                 {'display': 'block'},
-                []
+                [],
+                None
             )
