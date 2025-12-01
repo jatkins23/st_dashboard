@@ -26,7 +26,9 @@ def render_location_details(location_data: dict, recent_images: list = None, all
     components = []
 
     # Header with location name
-    location_name = location_data.get('additional_streets') or location_data.get('location_key', '')
+    #print(location_data)
+    #location_name = location_data.get('additional_streets') or location_data.get('location_key', '')
+    location_name = location_data.get('title')
     components.append(
         html.H3(location_name,
                style={'color': COLORS['text'], 'marginTop': 0, 'marginBottom': 15,

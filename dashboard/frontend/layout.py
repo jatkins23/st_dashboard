@@ -2,17 +2,23 @@
 
 from dash import dcc, html
 import dash_bootstrap_components as dbc
+from .components.results.results_panel import ResultsPanel
 
 
 def create_app():
     """Create Dash app with Bootstrap theme."""
     import dash
+    from pathlib import Path
+
+    # Get path to assets folder
+    assets_folder = Path(__file__).parent.parent / 'assets'
+
     return dash.Dash(
         __name__,
         suppress_callback_exceptions=True,
-        external_stylesheets=[dbc.themes.DARKLY]
+        external_stylesheets=[dbc.themes.DARKLY],
+        assets_folder=str(assets_folder)
     )
-
 
 def create_layout(universe_name: str):
     """Create simple layout with state search.
@@ -55,7 +61,7 @@ def create_layout(universe_name: str):
                         config={'displayModeBar': False, 'scrollZoom': True}
                     ),
                     # Floating results panel
-                    results_panel(),
+                    ResultsPanel()(),
                     details_panel()
                 ], style={'position': 'relative'})
             ]),
@@ -71,18 +77,7 @@ def create_layout(universe_name: str):
 def results_panel():
     component = html.Div([
         dbc.Card([
-            dbc.CardHeader([
-                html.Div([
-                    html.Span("Search Results", className='fw-bold'),
-                    dbc.Button(
-                        html.I(className='fas fa-chevron-down'),
-                        id='results-collapse-btn',
-                        color='link',
-                        size='sm',
-                        className='ms-auto p-0'
-                    )
-                ], className='d-flex align-items-center justify-content-between')
-            ]),
+            dbc.CardHeader("Search Results", className='fw-bold'),
             dbc.Collapse([
                 dbc.CardBody([
                     html.Div(id='results-content')

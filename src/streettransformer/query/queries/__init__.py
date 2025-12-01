@@ -1,12 +1,16 @@
 from .ask import ImageToImageStateQuery, ImageToImageChangeQuery
-from .results_instances import StateResultInstance, ChangeResultInstance
-from .results_sets import StateResultsSet, ChangeResultsSet
+from .results_instances import QueryResultInstance, StateResultInstance, ChangeResultInstance
+from .results_sets import QueryResultsSet, StateResultsSet, ChangeResultsSet
 
 __all__ = [
     'ImageToImageStateQuery',
     'ImageToImageChangeQuery',
+    
+    'QueryResultInstance',
     'StateResultInstance',
-    'ChangeResultInstance',
+    'ChangeResultInstance'
+    
+    'QueryResultsSet',
     'StateResultsSet',
     'ChangeResultsSet'
 ]

@@ -1,0 +1,10 @@
+/* Hide accordion chevron indicators */
+.accordion-button::after {
+    display: none !important;
+    background-image: unset !important;
+}
+
+/* Optionally remove the padding where the chevron was */
+.accordion-button {
+    padding-right: 1rem;
+}

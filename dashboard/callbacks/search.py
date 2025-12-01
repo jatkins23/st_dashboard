@@ -2,13 +2,13 @@
 
 import logging
 
-from dash import Input, Output, State, html
+from dash import Input, Output, State
 import dash_bootstrap_components as dbc
 
 from streettransformer.db.database import get_connection
 from streettransformer.query.queries.ask import ImageToImageStateQuery
 
-from ..frontend.components.results import format_results_accordion
+from ..frontend.components.results.results_panel import ResultsPanel
 from .. import state
 
 logger = logging.getLogger(__name__)
@@ -74,22 +74,13 @@ def register_search_callbacks(app):
                 for result in results_set:
                     result.enrich_street_names(con, state.CONFIG.universe_name)
 
-            # Convert to DataFrame for formatter
-            results_df = results_set.df
-
-            # Rename fields for compatibility
-            if 'street_names' in results_df.columns:
-                results_df['additional_streets'] = results_df['street_names'].apply(
-                    lambda x: ', '.join(x) if x else None
-                )
+            # Create results panel from results set
+            results_panel = ResultsPanel(id_prefix='results', results=results_set)
 
             result_location_ids = [r.location_id for r in results_set]
 
             return (
-                html.Div([
-                    html.H6(f"Top {len(results_set)} similar locations:", className='text-success mb-3'),
-                    format_results_accordion(results_df)
-                ]),
+                results_panel.content,
                 {'display': 'block'},
                 result_location_ids
             )

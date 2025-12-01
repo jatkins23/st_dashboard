@@ -13,3 +13,11 @@ __pycache__
 *.egg-info
 *.example
 .venv/
+
+zzz*
+*.svg
+*.png
+
+src/streettransformer/image_retrieval/*
+src/streettransformer/query/artifacts/*
+tests/*

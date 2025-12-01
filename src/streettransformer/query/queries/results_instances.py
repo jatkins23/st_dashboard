@@ -49,6 +49,10 @@ class QueryResultInstance(ABC, BaseModel):
                 # Store as a list for consistency
                 self.street_names = [result.iloc[0]['street_name']]
 
+                # Set title from street names if not already set
+                if not self.title and self.street_names:
+                    self.title = ', '.join([x.title() for x in self.street_names])
+
         except Exception as e:
             logger.warning(f"Failed to enrich street names for location {self.location_id}: {e}")
 

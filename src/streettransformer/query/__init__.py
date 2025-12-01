@@ -24,7 +24,7 @@ Example:
     >>> results = query.execute()
 """
 
-from .queries import ImageToImageStateQuery, ImageToImageChangeQuery, StateResultInstance, ChangeResultInstance, StateResultsSet, ChangeResultsSet
+from .queries import ImageToImageStateQuery, ImageToImageChangeQuery, QueryResultInstance, StateResultInstance, ChangeResultInstance, QueryResultsSet, StateResultsSet, ChangeResultsSet
 from .mixins import StateMixin, ChangeMixin, DatabaseMixin, SearchMethodMixin
 from .clip_embedding import CLIPEncoder
 
@@ -38,10 +38,12 @@ __all__ = [
     # Concrete ResultsSet Classes
     'StateResultsSet',
     'ChangeResultsSet',
+    'QueryResultsSet',
 
     # Concrete ResultInstance Classes
     'StateResultInstance',
     'ChangeResultInstance',
+    'QueryResultInstance',
     
     # Mixins (for advanced usage)
     'StateMixin',
