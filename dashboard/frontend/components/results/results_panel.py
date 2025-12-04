@@ -27,7 +27,7 @@ class ResultsPanel(BaseComponent):
         elif len(self.results) == 0:
             return [html.Div("No results found.", className='text-muted fst-italic')]
         else:
-            accordion_items = [ResultsStateCard(i, i, res)() for i, res in enumerate(self.results)]
+            accordion_items = [ResultsStateCard(i, i+1, res)() for i, res in enumerate(self.results)]
             accordion = dbc.Accordion(
                 accordion_items,
                 start_collapsed=True,
