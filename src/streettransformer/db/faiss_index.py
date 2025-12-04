@@ -249,16 +249,17 @@ class FAISSIndexer:
                         location_id,
                         location_key,
                         year,
-                        image_path,
+                        media_type,
+                        path,
                         {embedding_type}
-                    FROM {self.universe_name}.image_embeddings
+                    FROM {self.universe_name}.media_embeddings
                     WHERE year = {year}
                         AND {embedding_type} IS NOT NULL
-                    ORDER BY location_id
+                    ORDER BY location_id, media_type
                 """).df()
 
             embeddings = np.stack(df[embedding_type].values).astype(np.float32)
-            metadata = df[['location_id', 'location_key', 'year', 'image_path']]
+            metadata = df[['location_id', 'location_key', 'year', 'media_type', 'path']]
 
         # Ensure embeddings are normalized for cosine similarity
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -359,7 +360,7 @@ class FAISSIndexer:
             ef_search: Size of dynamic candidate list for HNSW
 
         Returns:
-            DataFrame with columns: location_id, location_key, year, image_path, similarity
+            DataFrame with columns: location_id, location_key, year, media_type, path, similarity
 
         Raises:
             ValueError: If year is None and no index is loaded
@@ -395,13 +396,15 @@ class FAISSIndexer:
         for idx, sim in zip(indices[0], similarities[0]):
             if idx >= 0:  # FAISS returns -1 for empty results
                 row = self._current_metadata.iloc[idx]
-                results.append({
-                    'location_id': row['location_id'],
-                    'location_key': row['location_key'],
-                    'year': row['year'],
-                    'image_path': row['image_path'],
-                    'similarity': float(sim)
-                })
+                result = {
+                    'location_id'   : row['location_id'],
+                    'location_key'  : row['location_key'],
+                    'year'          : row['year'],
+                    'media_type'    : row['media_type'],
+                    'path'          : row['path'],
+                    'similarity'    : float(sim)
+                }
+                results.append(result)
 
         return pd.DataFrame(results)
 

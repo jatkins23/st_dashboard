@@ -60,22 +60,31 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
     
     def _execute_search(self):
         logger = logging.getLogger(__name__)
+
+        # Build media_type filter - default to 'image' if not specified
+        media_types = getattr(self, 'media_types', None) or ['image']
+        if isinstance(media_types, str):
+            media_types = [media_types]
+
+        media_type_filter = "', '".join(media_types)
+
         query_df = self.execute_query(f"""
-            SELECT location_id, location_key, year, image_path, embedding
-            FROM {self.get_universe_table('image_embeddings')}
+            SELECT location_id, location_key, year, media_type, path, embedding
+            FROM {self.get_universe_table('media_embeddings')}
             WHERE location_id = {self.location_id}
                 AND year = {self.year}
+                AND media_type IN ('{media_type_filter}')
                 AND embedding IS NOT NULL
             ;
         """)
 
         if query_df.empty:
-            logger.error(f"No embedding found for location {self.location_id} year {self.year}")
+            logger.error(f"No embedding found for location {self.location_id} year {self.year} with media types {media_types}")
             return pd.DataFrame()
-        
+
         if query_df.shape[0] > 1:
             logger.warning(f"More than one embedding found for location {self.location_id} year {self.year}\n\tDefaulting to first one.")
-        
+
         query_vec = np.array(query_df.iloc[0]['embedding'])
 
         if self.use_faiss:
@@ -86,6 +95,10 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
                 year = self.target_years[0] if self.target_years else self.year # TODO: fix years to be a list . Also this should search all years!
             )
 
+            # Filter results by media_type if FAISS index contains multiple types
+            if 'media_type' in results.columns:
+                results = results[results['media_type'].isin(media_types)]
+
         # Remove self from results
         if self.remove_self:
             results = results[results['location_id'] != self.location_id]
@@ -94,13 +107,15 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
         # Apply whitening reranking if requested
         if self.use_whitening and not results.empty:
             whiten = WhiteningTransform(self.config)
+            # Use first media type for whitening (assuming whitening stats are per media_type)
             results = whiten.rerank_results(
                 query_vector=query_vec,
                 results=results,
                 year=self.target_years[0] if self.target_years else self.year, # TODO: again make sure target_year takes a list
+                media_type=media_types[0] if len(media_types) == 1 else None,
                 top_k=self.limit
             )
-        
+
         return results
             
 
@@ -133,7 +148,7 @@ class ImageToImageChangeQuery(BaseQuery, ChangeMixin):
         logger = logging.getLogger(__name__)
         query_df = self.execute_query(f"""
             SELECT location_id, location_key, year, embedding
-            FROM {self.get_universe_table('image_embeddings')}
+            FROM {self.get_universe_table('media_embeddings')}
             WHERE location_id = {self.location_id}
                 AND year IN ({self.year_from}, {self.year_to})
                 AND embedding IS NOT NULL

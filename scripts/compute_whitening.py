@@ -50,6 +50,7 @@ def compute_statistics(
     years: list[int] | None = None,
     stats_dir: str = './data/whitening_stats',
     cache_dir: str = './data/embedding_cache',
+    media_type: str | None = None,
     n_components: int | None = None,
     n_samples: int | None = None,
     force_recompute: bool = False
@@ -62,6 +63,7 @@ def compute_statistics(
         years: List of years (None for all)
         stats_dir: Directory for statistics
         cache_dir: Directory for caches
+        media_type: Media type filter (e.g., 'image', 'mask')
         n_components: Number of PCA components
         n_samples: Number of samples to use
         force_recompute: Force recomputation
@@ -83,6 +85,7 @@ def compute_statistics(
         try:
             stats = whiten.compute_statistics(
                 year=year,
+                media_type=media_type,
                 n_components=n_components,
                 n_samples=n_samples,
                 force_recompute=force_recompute
@@ -141,7 +144,8 @@ def test_retrieval(
     year: int,
     location_id: int,
     stats_dir: str = './data/whitening_stats',
-    k: int = 20
+    k: int = 20,
+    media_type: str = 'image'
 ):
     """Test retrieval quality improvement with whitening.
 
@@ -152,6 +156,7 @@ def test_retrieval(
         location_id: Query location
         stats_dir: Directory for statistics
         k: Number of results
+        media_type: Media type to query (default: 'image')
     """
     print(f"\n{'='*80}")
     print(f"Testing Retrieval Quality - Location {location_id}, Year {year}")
@@ -162,13 +167,14 @@ def test_retrieval(
     db = EmbeddingDB(config)
 
     # Get query embedding from database
-    from streettransformer.database import get_connection
+    from streettransformer.db.database import get_connection
     with get_connection(database_path, read_only=True) as con:
         query_df = con.execute(f"""
-            SELECT location_id, location_key, year, embedding
-            FROM {universe_name}.image_embeddings
+            SELECT location_id, location_key, year, media_type, path, embedding
+            FROM {universe_name}.media_embeddings
             WHERE location_id = {location_id}
                 AND year = {year}
+                AND media_type = '{media_type}'
                 AND embedding IS NOT NULL
         """).df()
 
@@ -183,7 +189,8 @@ def test_retrieval(
     results_original = db.search_similar(
         query_vector=query_embedding,
         limit=k,
-        year=year
+        year=year,
+        media_type=media_type
     )
 
     # Apply whitening and rerank
@@ -200,25 +207,33 @@ def test_retrieval(
             query_vector=query_embedding,
             results=results_original,
             year=year,
+            media_type=media_type,
             top_k=k
         )
 
-        # Compare
-        comparison = whiten.compare_retrieval(
-            query_vector=query_embedding,
-            results=results_original,
-            year=year
-        )
-
-        # Print comparison
+        # Print comparison metrics
         print("Comparison Metrics:")
         print("-" * 80)
-        print(f"Rank correlation: {comparison['rank_correlation']:.4f}")
-        print(f"Mean similarity (original): {comparison['mean_similarity_original']:.4f}")
-        print(f"Mean similarity (whitened): {comparison['mean_similarity_whitened']:.4f}")
-        print(f"Std similarity (original): {comparison['std_similarity_original']:.4f}")
-        print(f"Std similarity (whitened): {comparison['std_similarity_whitened']:.4f}")
-        print(f"Std improvement: {comparison['std_improvement']:.2f}x")
+
+        # Compare rank correlation
+        from scipy.stats import spearmanr
+        if len(results_original) > 1 and len(results_whitened) > 1:
+            # Create rank mappings
+            orig_ranks = {row['location_id']: i for i, row in results_original.iterrows()}
+            white_ranks = {row['location_id']: i for i, row in results_whitened.iterrows()}
+
+            # Get common locations
+            common_locs = set(orig_ranks.keys()) & set(white_ranks.keys())
+            if len(common_locs) > 1:
+                orig_rank_list = [orig_ranks[loc] for loc in common_locs]
+                white_rank_list = [white_ranks[loc] for loc in common_locs]
+                rank_corr, _ = spearmanr(orig_rank_list, white_rank_list)
+                print(f"Rank correlation: {rank_corr:.4f}")
+
+        print(f"Mean similarity (original): {results_original['similarity'].mean():.4f}")
+        print(f"Mean similarity (whitened): {results_whitened['similarity'].mean():.4f}")
+        print(f"Std similarity (original): {results_original['similarity'].std():.4f}")
+        print(f"Std similarity (whitened): {results_whitened['similarity'].std():.4f}")
         print()
 
         # Show top 10 results comparison
@@ -268,6 +283,8 @@ def main():
     parser.add_argument('--all-years', action='store_true', help='Compute for all years')
     parser.add_argument('--n-components', type=int, help='Number of PCA components (default: vector_dim)')
     parser.add_argument('--n-samples', type=int, help='Number of samples to use (default: all)')
+    parser.add_argument('--compute-media-type', type=str,
+                        help='Media type for computing statistics (e.g., image, mask)')
 
     # Directories
     parser.add_argument('--stats-dir', type=str, default='./data/whitening_stats',
@@ -282,6 +299,8 @@ def main():
     # Test options
     parser.add_argument('--location', type=int, help='Location ID for retrieval test')
     parser.add_argument('--k', type=int, default=20, help='Number of results for test')
+    parser.add_argument('--media-type', type=str, default='image',
+                        help='Media type for retrieval test (default: image)')
 
     args = parser.parse_args()
 
@@ -301,7 +320,8 @@ def main():
             args.year,
             args.location,
             stats_dir=args.stats_dir,
-            k=args.k
+            k=args.k,
+            media_type=args.media_type
         )
         return
 
@@ -323,6 +343,7 @@ def main():
         years=years,
         stats_dir=args.stats_dir,
         cache_dir=args.cache_dir,
+        media_type=args.compute_media_type,
         n_components=args.n_components,
         n_samples=args.n_samples,
         force_recompute=args.force_recompute

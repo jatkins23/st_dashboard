@@ -27,7 +27,7 @@ def get_connection(
 
     Example:
         >>> with get_connection("data.db") as con:
-        ...     results = con.execute("SELECT * FROM lion.image_embeddings").df()
+        ...     results = con.execute("SELECT * FROM lion.media_embeddings").df()
     """
     con = duckdb.connect(str(database_path), read_only=read_only)
     try:
@@ -60,7 +60,7 @@ class Database:
         >>> config = STConfig(database_path="data.db", universe_name="lion")
         >>> db = Database(config)
         >>> with db.connect() as con:
-        ...     results = con.execute("SELECT * FROM lion.image_embeddings").df()
+        ...     results = con.execute("SELECT * FROM lion.media_embeddings").df()
     """
 
     def __init__(self, config: STConfig):
@@ -99,7 +99,7 @@ class Database:
 
         Example:
             >>> db = Database(config)
-            >>> df = db.execute_query("SELECT * FROM lion.image_embeddings LIMIT 10")
+            >>> df = db.execute_query("SELECT * FROM lion.media_embeddings LIMIT 10")
         """
         with self.connect(read_only=read_only) as con:
             return con.execute(query).df()
