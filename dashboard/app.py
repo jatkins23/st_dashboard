@@ -14,7 +14,7 @@ from streettransformer.db.database import get_connection
 from .frontend.layout import create_app, create_layout
 #from frontend.layout import Layout
 from .callbacks import register_all_callbacks
-from .utils.map_utils import load_location_coordinates
+from .utils.map_utils import load_location_coordinates, load_projects
 from . import state
 
 logger = logging.getLogger(__name__)
@@ -53,12 +53,24 @@ def main():
     all_locations_df = load_location_coordinates(
         config,
         lambda: get_connection(config.database_path, read_only=True),
-        limit=5000
+        limit=None
     )
     logger.info(f"Loaded {len(all_locations_df)} locations")
 
+    # Load projects for map display
+    logger.info("Loading projects for map...")
+    try:
+        projects_df = load_projects(
+            lambda: get_connection(config.database_path, read_only=True),
+            universe_name=config.universe_name
+        )
+        logger.info(f"Loaded {len(projects_df)} projects")
+    except Exception as e:
+        logger.warning(f"Could not load projects for {config.universe_name}: {e}")
+        projects_df = None
+
     # Initialize global state
-    state.initialize_state(config, db, available_years, all_locations_df)
+    state.initialize_state(config, db, available_years, all_locations_df, projects_df)
 
     # Create app and layout
     app = create_app()

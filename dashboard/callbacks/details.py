@@ -75,14 +75,19 @@ def register_details_callbacks(app):
 
                 # Get images
                 image_query = f"""
-                    SELECT image_path, year
-                    FROM {state.CONFIG.universe_name}.image_embeddings
+                    SELECT path, media_type, year
+                    FROM {state.CONFIG.universe_name}.media_embeddings
                     WHERE location_id = {location_id}
-                        AND image_path IS NOT NULL
+                        AND media_type = 'image'
+                        AND path IS NOT NULL
                     ORDER BY year ASC
                     LIMIT 5
                 """
                 images_df = con.execute(image_query).df()
+
+                # Rename 'path' to 'image_path' for backward compatibility with viewer
+                if not images_df.empty:
+                    images_df = images_df.rename(columns={'path': 'image_path'})
 
                 # Create viewer instances with data and combine their content
                 details = []

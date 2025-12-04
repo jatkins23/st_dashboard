@@ -60,7 +60,7 @@ class ResultsStateCard(BaseComponent):
 
         # Location key if different from title
         if self.location_key and self.location_key != self.title:
-            content.append(self._content_element('Location Key', self.location_key))
+            content.append(self._content_element(self.location_key, 'Location Key'))
             # content.append(
             #     html.Small([html.Strong("Location Key: "), self.location_key], className='text-muted d-block mb-2')
             # )

@@ -124,7 +124,7 @@ def enrich_change_results_with_images(results: pd.DataFrame, db_connection, univ
             # Register results as temp table
             con.register('_temp_change_results', results)
 
-            # Join with image_embeddings to get both image paths
+            # Join with media_embeddings to get both image paths
             enriched = con.execute(f"""
                 SELECT
                     r.location_id,
@@ -136,10 +136,10 @@ def enrich_change_results_with_images(results: pd.DataFrame, db_connection, univ
                     e_to.image_path as image_path_to,
                     l.additional_streets
                 FROM _temp_change_results r
-                LEFT JOIN {universe_name}.image_embeddings e_from
+                LEFT JOIN {universe_name}.media_embeddings e_from
                     ON r.location_id = e_from.location_id
                     AND r.year_from = e_from.year
-                LEFT JOIN {universe_name}.image_embeddings e_to
+                LEFT JOIN {universe_name}.media_embeddings e_to
                     ON r.location_id = e_to.location_id
                     AND r.year_to = e_to.year
                 LEFT JOIN {universe_name}.locations l

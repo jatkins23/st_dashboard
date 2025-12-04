@@ -127,6 +127,20 @@ def create_search_form(available_years: list):
         ], width=1),
 
         dbc.Col([
+            dbc.Label("Media Type", size='sm'),
+            dcc.Dropdown(
+                id='media-type-checkbox',
+                options=[
+                    {'label': 'Images', 'value': 'image'},
+                    {'label': 'Masks', 'value': 'mask'},
+                    {'label': 'Side-by-side', 'value': 'sidebyside'}
+                ],
+                value='image',
+                clearable=False
+            )
+        ], width=2),
+
+        dbc.Col([
             dbc.Label("Options", size='sm'),
             dbc.Checklist(
                 id='use-faiss-checkbox',
