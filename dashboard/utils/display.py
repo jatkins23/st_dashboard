@@ -45,6 +45,60 @@ def encode_image_to_base64(image_path: Path, max_width: int = 400) -> str:
         logger.error(f"Error encoding image {image_path}: {e}")
         return None
 
+
+def encode_pdf_to_base64(pdf_path: Path, page_num: int = 0, max_width: int = 400) -> str:
+    """Convert PDF page to base64 string for embedding in HTML.
+
+    Args:
+        pdf_path: Path to PDF file
+        page_num: Page number to convert (0-indexed)
+        max_width: Maximum width for resizing
+
+    Returns:
+        Base64 encoded image string
+    """
+    try:
+        if not pdf_path.exists():
+            return None
+
+        import fitz  # PyMuPDF
+
+        # Open PDF and get the specified page
+        doc = fitz.open(pdf_path)
+        if page_num >= len(doc):
+            logger.warning(f"Page {page_num} not found in {pdf_path}")
+            return None
+
+        page = doc[page_num]
+
+        # Render page to image (matrix for resolution)
+        zoom = 2.0  # Higher zoom for better quality
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat)
+
+        # Convert to PIL Image
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        doc.close()
+
+        # Resize if too large
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_height = int(img.height * ratio)
+            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+
+        return f"data:image/png;base64,{img_str}"
+    except ImportError:
+        logger.error(f"PyMuPDF (fitz) not installed. Install with: pip install pymupdf")
+        return None
+    except Exception as e:
+        logger.error(f"Error encoding PDF {pdf_path}: {e}")
+        return None
+
 def _querify_list(col_list: list[str], prefix: str, indent: int = 0, newline: bool = True):
     prefixed_list = [f'{prefix}.{c}' for c in col_list]
     sep = ''

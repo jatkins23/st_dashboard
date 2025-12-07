@@ -34,7 +34,7 @@ def create_layout(universe_name: str):
         # Header
         dbc.Row([
             dbc.Col([
-                html.H3(f"Street Transformer Dashboard - {universe_name}", className='text-light mb-3')
+                html.H3(f"Street Transformer - {universe_name.upper()}", className='text-light mb-3')
             ])
         ], className='mt-3'),
 
