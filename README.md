@@ -198,7 +198,7 @@ The library provides core search functionality while the dashboard adds UI-speci
 The package expects these tables in your DuckDB database:
 
 ```sql
-{universe}.image_embeddings (
+{universe}.media_embeddings (
     location_id BIGINT,
     location_key VARCHAR,
     year INTEGER,

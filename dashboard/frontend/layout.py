@@ -34,7 +34,7 @@ def create_layout(universe_name: str):
         # Header
         dbc.Row([
             dbc.Col([
-                html.H3(f"Street Transformer Dashboard - {universe_name}", className='text-light mb-3')
+                html.H3(f"Street Transformer - {universe_name.upper()}", className='text-light mb-3')
             ])
         ], className='mt-3'),
 
@@ -127,6 +127,39 @@ def create_search_form(available_years: list):
         ], width=1),
 
         dbc.Col([
+<<<<<<< HEAD
+=======
+            dbc.Label("Media Type", size='sm'),
+            dcc.Dropdown(
+                id='media-type-checkbox',
+                options=[
+                    {'label': 'Images', 'value': 'image'},
+                    {'label': 'Masks', 'value': 'mask'},
+                    {'label': 'Side-by-side', 'value': 'sidebyside'}
+                ],
+                value='image',
+                clearable=False
+            )
+        ], width=2),
+
+        dbc.Col([
+            dbc.Label("Options", size='sm'),
+            dbc.Checklist(
+                id='use-faiss-checkbox',
+                options=[{'label': ' FAISS', 'value': 'faiss'}],
+                value=['faiss'],
+                switch=True
+            ),
+            dbc.Checklist(
+                id='use-whitening-checkbox',
+                options=[{'label': ' Whitening', 'value': 'whitening'}],
+                value=[],
+                switch=True
+            )
+        ], width=2),
+
+        dbc.Col([
+>>>>>>> a6597d193907f1f57399b3aaec93a584cdca3f7a
             dbc.Button(
                 'Search',
                 id='search-btn',

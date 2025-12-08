@@ -35,7 +35,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 import logging
 
-from streettransformer import FAISSIndexer, NPZCache, Config, EmbeddingDB
+from streettransformer import FAISSIndexer, NPZCache, STConfig, EmbeddingDB
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +235,7 @@ def main():
     # Directories
     parser.add_argument('--index-dir', type=str, default='./data/faiss_indexes',
                         help='Directory for index files')
-    parser.add_argument('--cache-dir', type=str, default='./embedding_cache',
+    parser.add_argument('--cache-dir', type=str, default='./data/embedding_cache',
                         help='Directory for NPZ caches')
 
     # Flags

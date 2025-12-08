@@ -25,7 +25,8 @@ def register_map_callbacks(app):
         center_lon = -74.0060
 
         fig = create_location_map(
-            locations_df=state.ALL_LOCATIONS_DF,
+            # locations_df=state.ALL_LOCATIONS_DF,
+            projects_df=state.PROJECTS_DF,
             selected_location_id=query_location_id,
             result_location_ids=result_location_ids or [],
             center_lat=center_lat,

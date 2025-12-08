@@ -20,31 +20,29 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ImageEmbedding:
-    """Container for image embedding data.
+class MediaEmbedding:
+    """Container for media embedding data.
 
     Attributes:
         location_id: Unique location identifier
         location_key: Location key/name
-        year: Year of the image
-        image_path: Path to the image file
-        embedding: Primary embedding vector
-        mask_embedding: Optional mask-based embedding
-        fusion_embedding: Optional fusion embedding
-        mask_image_embedding: Optional masked image embedding
-        mask_path: Optional path to mask file
-        mask_stats: Optional mask statistics
+        year: Year of the media
+        media_type: Type of media - 'image', 'mask', or 'sidebyside'
+        path: Path to the media file
+        embedding: Embedding vector
+        stats: Optional statistics (e.g., mask statistics)
     """
     location_id: int
     location_key: str
     year: int
-    image_path: str
+    media_type: str
+    path: str
     embedding: np.ndarray
-    mask_embedding: np.ndarray | None = None
-    fusion_embedding: np.ndarray | None = None
-    mask_image_embedding: np.ndarray | None = None
-    mask_path: str | None = None
-    mask_stats: dict[str, Any] | None = None
+    stats: dict[str, Any] | None = None
+
+
+# Backward compatibility alias
+ImageEmbedding = MediaEmbedding
 
 
 class EmbeddingDB:
@@ -117,23 +115,21 @@ class EmbeddingDB:
             # Drop existing tables if requested
             if drop_existing:
                 logger.info(f"Dropping existing tables in schema '{self.schema}'")
-                con.execute(f"DROP TABLE IF EXISTS {self.schema}.image_embeddings CASCADE")
+                con.execute(f"DROP TABLE IF EXISTS {self.schema}.media_embeddings CASCADE")
                 con.execute(f"DROP TABLE IF EXISTS {self.schema}.change_vectors CASCADE")
 
-            # Create image_embeddings table
+            # Create media_embeddings table
             con.execute(f"""
-                CREATE TABLE IF NOT EXISTS {self.schema}.image_embeddings (
+                CREATE TABLE IF NOT EXISTS {self.schema}.media_embeddings (
                     location_id BIGINT NOT NULL,
                     location_key VARCHAR NOT NULL,
                     year INTEGER NOT NULL,
-                    image_path VARCHAR NOT NULL,
+                    media_type VARCHAR NOT NULL,
+                    path VARCHAR NOT NULL,
                     embedding FLOAT[{self.vector_dim}],
-                    mask_embedding FLOAT[{self.vector_dim}],
-                    fusion_embedding FLOAT[{self.vector_dim}],
-                    mask_image_embedding FLOAT[{self.vector_dim}],
-                    mask_path VARCHAR,
-                    mask_stats JSON,
-                    PRIMARY KEY (location_key, year)
+                    stats JSON,
+                    PRIMARY KEY (location_key, year, media_type),
+                    UNIQUE (path)
                 )
             """)
 
@@ -142,10 +138,14 @@ class EmbeddingDB:
                 CREATE TABLE IF NOT EXISTS {self.schema}.change_vectors (
                     location_id BIGINT NOT NULL,
                     location_key VARCHAR NOT NULL,
+                    media_type VARCHAR NOT NULL,
                     year_from INTEGER NOT NULL,
+                    path_from VARCHAR NOT NULL,
                     year_to INTEGER NOT NULL,
+                    path_to VARCHAR NOT NULL,
                     delta FLOAT[{self.vector_dim}],
-                    PRIMARY KEY (location_key, year_from, year_to)
+                    PRIMARY KEY (location_key, year_from, year_to, media_type),
+                    UNIQUE (path_from, path_to)
                 )
             """)
 
@@ -156,8 +156,8 @@ class EmbeddingDB:
                 try:
                     # Create HNSW index on embedding column
                     con.execute(f"""
-                        CREATE INDEX IF NOT EXISTS image_embeddings_hnsw_idx
-                        ON {self.schema}.image_embeddings
+                        CREATE INDEX IF NOT EXISTS media_embeddings_hnsw_idx
+                        ON {self.schema}.media_embeddings
                         USING HNSW (embedding)
                     """)
                     logger.info("Created HNSW index on embeddings")
@@ -170,13 +170,13 @@ class EmbeddingDB:
 
     def insert_embeddings(
         self,
-        embeddings: list[ImageEmbedding],
+        embeddings: list[MediaEmbedding],
         on_conflict: Literal['replace', 'ignore'] = 'replace'
     ) -> None:
         """Insert or update embeddings in the database.
 
         Args:
-            embeddings: List of ImageEmbedding objects
+            embeddings: List of MediaEmbedding objects
             on_conflict: How to handle conflicts ('replace' or 'ignore')
         """
         if not embeddings:
@@ -190,13 +190,10 @@ class EmbeddingDB:
                 'location_id': emb.location_id,
                 'location_key': emb.location_key,
                 'year': emb.year,
-                'image_path': emb.image_path,
+                'media_type': emb.media_type,
+                'path': emb.path,
                 'embedding': emb.embedding.tolist(),
-                'mask_embedding': emb.mask_embedding.tolist() if emb.mask_embedding is not None else None,
-                'fusion_embedding': emb.fusion_embedding.tolist() if emb.fusion_embedding is not None else None,
-                'mask_image_embedding': emb.mask_image_embedding.tolist() if emb.mask_image_embedding is not None else None,
-                'mask_path': emb.mask_path,
-                'mask_stats': json.dumps(emb.mask_stats) if emb.mask_stats else None
+                'stats': json.dumps(emb.stats) if emb.stats else None
             })
 
         df = pd.DataFrame(records)
@@ -208,28 +205,24 @@ class EmbeddingDB:
                 if on_conflict == 'replace':
                     # Upsert: insert or replace on conflict
                     con.execute(f"""
-                        INSERT INTO {self.schema}.image_embeddings
+                        INSERT INTO {self.schema}.media_embeddings
                         SELECT * FROM _tmp_embeddings
-                        ON CONFLICT (location_key, year)
+                        ON CONFLICT (location_key, year, media_type)
                         DO UPDATE SET
                             location_id = excluded.location_id,
-                            image_path = excluded.image_path,
+                            path = excluded.path,
                             embedding = excluded.embedding,
-                            mask_embedding = excluded.mask_embedding,
-                            fusion_embedding = excluded.fusion_embedding,
-                            mask_image_embedding = excluded.mask_image_embedding,
-                            mask_path = excluded.mask_path,
-                            mask_stats = excluded.mask_stats
+                            stats = excluded.stats
                     """)
                 else:  # ignore
                     # Insert only if not exists
                     con.execute(f"""
-                        INSERT INTO {self.schema}.image_embeddings
+                        INSERT INTO {self.schema}.media_embeddings
                         SELECT * FROM _tmp_embeddings
-                        ON CONFLICT (location_key, year) DO NOTHING
+                        ON CONFLICT (location_key, year, media_type) DO NOTHING
                     """)
 
-                logger.info(f"Inserted {len(embeddings)} embeddings into {self.schema}.image_embeddings")
+                logger.debug(f"Inserted {len(embeddings)} embeddings into {self.schema}.media_embeddings")
             finally:
                 con.unregister('_tmp_embeddings')
     def get_stats(self) -> dict:
@@ -249,7 +242,7 @@ class EmbeddingDB:
         query_vector: np.ndarray,
         limit: int = 10,
         year: int | None = None,
-        embedding_type: Literal['embedding', 'mask_embedding', 'fusion_embedding'] = 'embedding'
+        media_type: str | None = None
     ) -> pd.DataFrame:
         """Search for similar embeddings using cosine similarity.
 
@@ -257,17 +250,23 @@ class EmbeddingDB:
             query_vector: Query embedding vector
             limit: Number of results to return
             year: Optional year filter
-            embedding_type: Which embedding to search
+            media_type: Optional media type filter ('image', 'mask', 'sidebyside')
 
         Returns:
-            DataFrame with columns: location_id, location_key, year, image_path, similarity
+            DataFrame with columns: location_id, location_key, year, media_type, path, similarity
         """
         with get_connection(self.config.database_path, read_only=True) as con:
             # Register query vector
             query_list = query_vector.tolist()
 
-            # Build query with optional year filter
-            year_filter = f"AND year = {year}" if year is not None else ""
+            # Build filters
+            filters = ["embedding IS NOT NULL"]
+            if year is not None:
+                filters.append(f"year = {year}")
+            if media_type is not None:
+                filters.append(f"media_type = '{media_type}'")
+
+            where_clause = " AND ".join(filters)
 
             # Cosine similarity using array operations
             query = f"""
@@ -275,11 +274,11 @@ class EmbeddingDB:
                     location_id,
                     location_key,
                     year,
-                    image_path,
-                    array_cosine_similarity({embedding_type}, {query_list}::FLOAT[{self.vector_dim}]) AS similarity
-                FROM {self.schema}.image_embeddings
-                WHERE {embedding_type} IS NOT NULL
-                {year_filter}
+                    media_type,
+                    path,
+                    array_cosine_similarity(embedding, {query_list}::FLOAT[{self.vector_dim}]) AS similarity
+                FROM {self.schema}.media_embeddings
+                WHERE {where_clause}
                 ORDER BY similarity DESC
                 LIMIT {limit}
             """
@@ -290,29 +289,33 @@ class EmbeddingDB:
     def fetch_embeddings_by_location(
         self,
         location_key: str,
-        embedding_type: Literal['embedding', 'mask_embedding', 'fusion_embedding'] = 'embedding'
+        media_type: str | None = None
     ) -> pd.DataFrame:
         """Fetch all embeddings for a given location across years.
 
         Args:
             location_key: Location identifier
-            embedding_type: Which embedding to fetch
+            media_type: Optional media type filter ('image', 'mask', 'sidebyside')
 
         Returns:
             DataFrame with years and embeddings
         """
         with get_connection(self.config.database_path, read_only=True) as con:
+            media_filter = f"AND media_type = '{media_type}'" if media_type else ""
+
             result_df = con.execute(f"""
                 SELECT
                     location_id,
                     location_key,
                     year,
-                    image_path,
-                    {embedding_type} as embedding
-                FROM {self.schema}.image_embeddings
+                    media_type,
+                    path,
+                    embedding
+                FROM {self.schema}.media_embeddings
                 WHERE location_key = '{location_key}'
-                AND {embedding_type} IS NOT NULL
-                ORDER BY year
+                AND embedding IS NOT NULL
+                {media_filter}
+                ORDER BY year, media_type
             """).df()
 
             return result_df
@@ -320,29 +323,33 @@ class EmbeddingDB:
     def fetch_embeddings_by_year(
         self,
         year: int,
-        embedding_type: Literal['embedding', 'mask_embedding', 'fusion_embedding'] = 'embedding'
+        media_type: str | None = None
     ) -> pd.DataFrame:
         """Fetch all embeddings for a given year.
 
         Args:
             year: Year to fetch
-            embedding_type: Which embedding to fetch
+            media_type: Optional media type filter ('image', 'mask', 'sidebyside')
 
         Returns:
             DataFrame with locations and embeddings
         """
         with get_connection(self.config.database_path, read_only=True) as con:
+            media_filter = f"AND media_type = '{media_type}'" if media_type else ""
+
             result_df = con.execute(f"""
                 SELECT
                     location_id,
                     location_key,
                     year,
-                    image_path,
-                    {embedding_type} as embedding
-                FROM {self.schema}.image_embeddings
+                    media_type,
+                    path,
+                    embedding
+                FROM {self.schema}.media_embeddings
                 WHERE year = {year}
-                AND {embedding_type} IS NOT NULL
-                ORDER BY location_id
+                AND embedding IS NOT NULL
+                {media_filter}
+                ORDER BY location_id, media_type
             """).df()
 
             return result_df
@@ -351,6 +358,7 @@ class EmbeddingDB:
         self,
         year_from: int,
         year_to: int,
+        media_type: str = 'image',
         normalize: bool = True
     ) -> None:
         """Compute and store change vectors (deltas) between two years.
@@ -358,11 +366,12 @@ class EmbeddingDB:
         Args:
             year_from: Starting year
             year_to: Ending year
+            media_type: Media type to compute changes for ('image', 'mask', 'sidebyside')
             normalize: Whether to normalize the delta vectors
         """
         # Fetch embeddings for both years
-        from_df = self.fetch_embeddings_by_year(year_from)
-        to_df = self.fetch_embeddings_by_year(year_to)
+        from_df = self.fetch_embeddings_by_year(year_from, media_type=media_type)
+        to_df = self.fetch_embeddings_by_year(year_to, media_type=media_type)
 
         # Merge on location_key to find matching locations
         merged = from_df.merge(
@@ -372,7 +381,7 @@ class EmbeddingDB:
         )
 
         if merged.empty:
-            logger.warning(f"No matching locations between {year_from} and {year_to}")
+            logger.warning(f"No matching locations between {year_from} and {year_to} for {media_type}")
             return
 
         # Compute deltas using vectorized operations
@@ -390,15 +399,18 @@ class EmbeddingDB:
             {
                 'location_id': row.location_id_from,
                 'location_key': row.location_key,
+                'media_type': media_type,
                 'year_from': year_from,
+                'path_from': row.path_from,
                 'year_to': year_to,
+                'path_to': row.path_to,
                 'delta': delta.tolist()
             }
             for row, delta in zip(merged.itertuples(), deltas)
         ]
 
         if not change_records:
-            logger.warning(f"No change vectors computed for {year_from} -> {year_to}")
+            logger.warning(f"No change vectors computed for {year_from} -> {year_to} ({media_type})")
             return
 
         # Insert change vectors
@@ -411,15 +423,17 @@ class EmbeddingDB:
                 con.execute(f"""
                     INSERT INTO {self.schema}.change_vectors
                     SELECT * FROM _tmp_changes
-                    ON CONFLICT (location_key, year_from, year_to)
+                    ON CONFLICT (location_key, year_from, year_to, media_type)
                     DO UPDATE SET
                         location_id = excluded.location_id,
+                        path_from = excluded.path_from,
+                        path_to = excluded.path_to,
                         delta = excluded.delta
                 """)
 
                 logger.info(
                     f"Computed {len(change_records)} change vectors for "
-                    f"{year_from} -> {year_to}"
+                    f"{year_from} -> {year_to} ({media_type})"
                 )
             finally:
                 con.unregister('_tmp_changes')
@@ -429,7 +443,8 @@ class EmbeddingDB:
         query_delta: np.ndarray,
         limit: int = 10,
         year_from: int | None = None,
-        year_to: int | None = None
+        year_to: int | None = None,
+        media_type: str | None = None
     ) -> pd.DataFrame:
         """Search for similar change patterns.
 
@@ -438,6 +453,7 @@ class EmbeddingDB:
             limit: Number of results
             year_from: Optional starting year filter
             year_to: Optional ending year filter
+            media_type: Optional media type filter ('image', 'mask', 'sidebyside')
 
         Returns:
             DataFrame with matching change vectors and similarity scores
@@ -451,6 +467,8 @@ class EmbeddingDB:
                 filters.append(f"year_from = {year_from}")
             if year_to is not None:
                 filters.append(f"year_to = {year_to}")
+            if media_type is not None:
+                filters.append(f"media_type = '{media_type}'")
 
             where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
 
@@ -458,8 +476,11 @@ class EmbeddingDB:
                 SELECT
                     location_id,
                     location_key,
+                    media_type,
                     year_from,
+                    path_from,
                     year_to,
+                    path_to,
                     array_cosine_similarity(delta, {query_list}::FLOAT[{self.vector_dim}]) AS similarity
                 FROM {self.schema}.change_vectors
                 {where_clause}
@@ -470,29 +491,53 @@ class EmbeddingDB:
             result_df = con.execute(query).df()
             return result_df
 
-    def get_embedding_count(self) -> int:
+    def get_embedding_count(self, media_type: str | None = None) -> int:
         """Get total number of embeddings in database.
+
+        Args:
+            media_type: Optional media type filter ('image', 'mask', 'sidebyside')
 
         Returns:
             Total count of embeddings
         """
         with get_connection(self.config.database_path, read_only=True) as con:
+            media_filter = f"WHERE media_type = '{media_type}'" if media_type else ""
             count = con.execute(f"""
                 SELECT COUNT(*) as cnt
-                FROM {self.schema}.image_embeddings
+                FROM {self.schema}.media_embeddings
+                {media_filter}
             """).fetchone()[0]
             return count
 
-    def get_years(self) -> list[int]:
+    def get_years(self, media_type: str | None = None) -> list[int]:
         """Get all years with embeddings.
+
+        Args:
+            media_type: Optional media type filter ('image', 'mask', 'sidebyside')
 
         Returns:
             Sorted list of years
         """
         with get_connection(self.config.database_path, read_only=True) as con:
+            media_filter = f"WHERE media_type = '{media_type}'" if media_type else ""
             years = con.execute(f"""
                 SELECT DISTINCT year
-                FROM {self.schema}.image_embeddings
+                FROM {self.schema}.media_embeddings
+                {media_filter}
                 ORDER BY year
             """).df()['year'].tolist()
             return years
+
+    def get_media_types(self) -> list[str]:
+        """Get all media types with embeddings.
+
+        Returns:
+            Sorted list of media types
+        """
+        with get_connection(self.config.database_path, read_only=True) as con:
+            media_types = con.execute(f"""
+                SELECT DISTINCT media_type
+                FROM {self.schema}.media_embeddings
+                ORDER BY media_type
+            """).df()['media_type'].tolist()
+            return media_types

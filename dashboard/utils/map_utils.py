@@ -5,7 +5,69 @@ import pandas as pd
 from ..config import COLORS
 
 
-def create_location_map(locations_df: pd.DataFrame = None,
+def _create_project_hover_text(df: pd.DataFrame, prefix: str = "") -> pd.Series:
+    """Create hover text for project markers.
+
+    Args:
+        df: DataFrame with project data
+        prefix: Optional prefix for hover text (e.g., "RESULT", "QUERY LOCATION")
+
+    Returns:
+        Series with formatted hover text
+    """
+    def format_row(row):
+        parts = []
+        if prefix:
+            parts.append(f"<b>{prefix}</b><br>")
+        parts.extend([
+            f"<b>{row.get('Project Title', 'N/A')}</b><br>",
+            f"Project ID: {row.get('ProjectID', 'N/A')}<br>",
+            f"Lead Agency: {row.get('Lead Agency', 'N/A')}<br>",
+            f"Year: {row.get('Project Year', 'N/A')}<br>",
+            f"Status: {row.get('Project Status', 'N/A')}<br>",
+            f"Safety Scope: {row.get('Safety Scope', 'N/A')}<br>",
+            f"Total Scope: {row.get('Total Scope', 'N/A')}"
+        ])
+        return "".join(parts)
+
+    return df.apply(format_row, axis=1)
+
+
+def _add_project_trace(fig: go.Figure, df: pd.DataFrame, name: str, color: str,
+                       size: int, opacity: float, prefix: str = "") -> None:
+    """Add a project trace to the map figure.
+
+    Args:
+        fig: Plotly figure to add trace to
+        df: DataFrame with project data
+        name: Name for the trace
+        color: Marker color
+        size: Marker size
+        opacity: Marker opacity
+        prefix: Optional prefix for hover text
+    """
+    if df.empty:
+        return
+
+    hover_text = _create_project_hover_text(df, prefix)
+
+    fig.add_trace(go.Scattermapbox(
+        lat=df['latitude'],
+        lon=df['longitude'],
+        mode='markers',
+        marker=dict(
+            size=size,
+            color=color,
+            opacity=opacity
+        ),
+        text=hover_text,
+        hoverinfo='text',
+        customdata=df['location_id'],
+        name=name
+    ))
+
+
+def create_location_map(projects_df: pd.DataFrame,
                         selected_location_id: int = None,
                         result_location_ids: list = None,
                         center_lat: float = 40.7128,
@@ -14,9 +76,9 @@ def create_location_map(locations_df: pd.DataFrame = None,
     """Create a Plotly mapbox figure with location markers.
 
     Args:
-        locations_df: DataFrame with columns: location_id, latitude, longitude, location_key
         selected_location_id: ID of query/selected location (shown in red)
         result_location_ids: List of result location IDs (shown in blue)
+        projects_df: DataFrame with project data for background layer
         center_lat: Map center latitude
         center_lon: Map center longitude
         zoom: Map zoom level
@@ -26,99 +88,29 @@ def create_location_map(locations_df: pd.DataFrame = None,
     """
     fig = go.Figure()
 
-    if locations_df is not None and not locations_df.empty:
-        # Separate locations into categories
+    # Display projects instead of locations on the map
+    if projects_df is not None and not projects_df.empty:
+        # Separate projects into categories
         result_location_ids = result_location_ids or []
 
-        # Query location (red)
-        if selected_location_id is not None:
-            query_loc = locations_df[locations_df['location_id'] == selected_location_id]
-        else:
-            query_loc = pd.DataFrame()
+        # Query location projects (red)
+        query_projects = projects_df[projects_df['location_id'] == selected_location_id] if selected_location_id else pd.DataFrame()
 
-        # Result locations (blue)
-        if result_location_ids:
-            result_locs = locations_df[locations_df['location_id'].isin(result_location_ids)]
-        else:
-            result_locs = pd.DataFrame()
+        # Result location projects (blue)
+        result_projects = projects_df[projects_df['location_id'].isin(result_location_ids)] if result_location_ids else pd.DataFrame()
 
-        # Other locations (dimmed gray)
+        # Other projects (dimmed orange)
         exclude_ids = []
         if selected_location_id is not None:
             exclude_ids.append(selected_location_id)
         exclude_ids.extend(result_location_ids)
 
-        if exclude_ids:
-            other_locs = locations_df[~locations_df['location_id'].isin(exclude_ids)]
-        else:
-            other_locs = locations_df
+        other_projects = projects_df[~projects_df['location_id'].isin(exclude_ids)] if exclude_ids else projects_df
 
-        # Add other locations (dimmed gray)
-        if not other_locs.empty:
-            hover_text = other_locs.apply(
-                lambda row: f"ID: {row['location_id']}<br>{row.get('location_key', '')}",
-                axis=1
-            )
-
-            fig.add_trace(go.Scattermapbox(
-                lat=other_locs['latitude'],
-                lon=other_locs['longitude'],
-                mode='markers',
-                marker=dict(
-                    size=6,
-                    color='#555555',
-                    opacity=0.3
-                ),
-                text=hover_text,
-                hoverinfo='text',
-                customdata=other_locs['location_id'],
-                name='Other Locations'
-            ))
-
-        # Add result locations (blue)
-        if not result_locs.empty:
-            hover_text = result_locs.apply(
-                lambda row: f"<b>RESULT</b><br>ID: {row['location_id']}<br>{row.get('location_key', '')}",
-                axis=1
-            )
-
-            fig.add_trace(go.Scattermapbox(
-                lat=result_locs['latitude'],
-                lon=result_locs['longitude'],
-                mode='markers',
-                marker=dict(
-                    size=10,
-                    color='#1E90FF',  # Dodger blue
-                    opacity=0.9
-                ),
-                text=hover_text,
-                hoverinfo='text',
-                customdata=result_locs['location_id'],
-                name='Results'
-            ))
-
-        # Add query location (red) - drawn last so it's on top
-        if not query_loc.empty:
-            hover_text = query_loc.apply(
-                lambda row: f"<b>QUERY LOCATION</b><br>ID: {row['location_id']}<br>{row.get('location_key', '')}",
-                axis=1
-            )
-
-            fig.add_trace(go.Scattermapbox(
-                lat=query_loc['latitude'],
-                lon=query_loc['longitude'],
-                mode='markers',
-                marker=dict(
-                    size=14,
-                    color=COLORS['error'],  # Red for query location
-                    opacity=1.0,
-                    symbol='circle'
-                ),
-                text=hover_text,
-                hoverinfo='text',
-                customdata=query_loc['location_id'],
-                name='Query Location'
-            ))
+        # Add traces in order: other -> results -> query (so query is on top)
+        _add_project_trace(fig, other_projects, 'Projects', '#FFA500', size=6, opacity=0.3)
+        _add_project_trace(fig, result_projects, 'Result Projects', '#1E90FF', size=10, opacity=0.9, prefix='RESULT')
+        _add_project_trace(fig, query_projects, 'Query Project', COLORS['error'], size=14, opacity=1.0, prefix='QUERY LOCATION')
 
     # Update layout
     fig.update_layout(
@@ -138,19 +130,21 @@ def create_location_map(locations_df: pd.DataFrame = None,
     return fig
 
 
-def load_location_coordinates(config, db_connection_func, year: int = None, limit: int = 5000) -> pd.DataFrame:
+def load_location_coordinates(config, db_connection_func, year: int = None, limit: int = None) -> pd.DataFrame:
     """Load location coordinates from database.
 
     Args:
         config: STConfig object with database path and universe name
         db_connection_func: Function that returns database connection
         year: Optional year filter (if None, gets one representative point per location)
-        limit: Maximum number of locations to load
+        limit: Maximum number of locations to load (None for all)
 
     Returns:
         DataFrame with location_id, latitude, longitude, location_key columns
     """
     with db_connection_func() as con:
+        limit_clause = f"LIMIT {limit}" if limit is not None else ""
+
         if year is not None:
             # Get locations for specific year
             query = f"""
@@ -170,12 +164,12 @@ def load_location_coordinates(config, db_connection_func, year: int = None, limi
                         CONCAT(l.street1, ' & ', l.street2)
                     ) as location_key
                 FROM {config.universe_name}.locations l
-                INNER JOIN {config.universe_name}.image_embeddings e
+                INNER JOIN {config.universe_name}.media_embeddings e
                     ON l.location_id = e.location_id
                 WHERE e.year = {year}
                     AND l.geometry IS NOT NULL
                     AND e.embedding IS NOT NULL
-                LIMIT {limit}
+                {limit_clause}
             """
         else:
             # Get one point per location (using most recent year available)
@@ -197,12 +191,45 @@ def load_location_coordinates(config, db_connection_func, year: int = None, limi
                     ) as location_key
                 FROM {config.universe_name}.locations l
                 WHERE EXISTS (
-                    SELECT 1 FROM {config.universe_name}.image_embeddings e
+                    SELECT 1 FROM {config.universe_name}.media_embeddings e
                     WHERE e.location_id = l.location_id
                     AND e.embedding IS NOT NULL
                 )
-                LIMIT {limit}
+                {limit_clause}
             """
+        df = con.execute(query).df()
+        return df
+
+
+def load_projects(db_connection_func, universe_name:str = 'nyc') -> pd.DataFrame:
+    """Load projects for map display from universe.
+
+    Args:
+        db_connection_func: Function that returns database connection
+
+    Returns:
+        DataFrame with project data including geometry for mapping
+    """
+
+    with db_connection_func() as con:
+        query = f"""
+            SELECT
+                p.citydata_proj_id as ProjectID,
+                p.ProjTitle as "Project Title",
+                p.LeadAgency as "Lead Agency",
+                p.proj_year as "Project Year",
+                p.safety_scope as "Safety Scope",
+                p.total_scope as "Total Scope",
+                p.ProjectStatus as "Project Status",
+                l2p.location_id,
+                ST_Y(l.geometry) as latitude,
+                ST_X(l.geometry) as longitude
+            FROM {universe_name}.projects p
+            INNER JOIN {universe_name}._location_to_project l2p
+                ON p.citydata_proj_id = l2p.citydata_proj_Id
+            INNER JOIN {universe_name}.locations l
+                ON l2p.location_id = l.location_id
+        """
         df = con.execute(query).df()
         return df
 
@@ -233,7 +260,7 @@ def get_location_details(config, db_connection_func, location_id: int) -> dict:
                 MAX(e.year) as last_year,
                 COUNT(*) as image_count
             FROM {config.universe_name}.locations l
-            LEFT JOIN {config.universe_name}.image_embeddings e
+            LEFT JOIN {config.universe_name}.media_embeddings e
                 ON l.location_id = e.location_id
             WHERE l.location_id = {location_id}
             GROUP BY l.location_id, l.location_key, l.geometry, l.street1, l.street2, l.additional_streets

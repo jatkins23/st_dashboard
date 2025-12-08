@@ -19,6 +19,11 @@ class QueryResultInstance(ABC, BaseModel):
 
     class Config:
         frozen = False
+    
+    # TODO: Rename to 'enrich_path' throughout
+    # TODO: allow for multiple media_types at once. Add in front-end functionality for this
+    def enrich_image_path(self, db_connection, universe_name: str, media_types:str='image'):
+        ...
 
     def enrich_street_names(self, db_connection, universe_name: str, include_borough: bool = True) -> None:
         """Enrich with street names from locations table.
@@ -60,6 +65,39 @@ class StateResultInstance(QueryResultInstance):
     year: int
     image_path: Optional[Path] = None
 
+    def enrich_image_path(self, db_connection, universe_name: str, media_type: str='image') -> None:
+        """Enrich with image path from media_embeddings table.
+
+        Args:
+            db_connection: Active database connection
+            universe_name: Name of universe schema
+        """
+        try:
+            if isinstance(media_type, str):
+                media_type_filter = f"AND media_type='{media_type}'"
+            elif isinstance(media_type, list):
+                media_type_filter = '\t\n'.join(f"AND media_type='{x}'" for x in media_type)
+            else:
+                raise TypeError(f'Unknown `media_type`: {media_type}')
+            
+            query = f"""
+                SELECT path
+                FROM {universe_name}.media_embeddings
+                WHERE location_id = {self.location_id}
+                    AND year = {self.year}
+                    {media_type_filter}
+                    AND path IS NOT NULL
+                LIMIT 1
+            """
+
+            result = db_connection.execute(query).df()
+
+            if not result.empty and result.iloc[0]['path']:
+                self.image_path = Path(result.iloc[0]['path'])
+
+        except Exception as e:
+            logger.warning(f"Failed to enrich image path for location {self.location_id} year {self.year}: {e}")
+
 
 class ChangeResultInstance(QueryResultInstance):
     year_from: int
@@ -67,30 +105,40 @@ class ChangeResultInstance(QueryResultInstance):
     start_image_path: Optional[Path] = None
     end_image_path: Optional[Path] = None
 
-    def enrich_image_paths(self, db_connection, universe_name: str) -> None:
+    def enrich_image_path(self, db_connection, universe_name: str, media_type: str='image') -> None:
         """Enrich with image paths for both start and end years.
 
         Args:
             db_connection: Active database connection
             universe_name: Name of universe schema
+            media_type: Media type filter (default 'media')
         """
         try:
+            if isinstance(media_type, str):
+                media_type_filter = f'AND media_type="{media_type}"'
+            elif isinstance(media_type, list):
+                media_type_filter = '\t\n'.join(f'AND media_type="{x}"' for x in media_type)
+            else:
+                raise TypeError(f'Unknown `media_type`: {media_type}')
+
             query = f"""
-                SELECT year, image_path
-                FROM {universe_name}.image_embeddings
+                SELECT year, path
+                FROM {universe_name}.media_embeddings
                 WHERE location_id = {self.location_id}
                     AND year IN ({self.year_from}, {self.year_to})
-                    AND image_path IS NOT NULL
+                    {media_type_filter}
+                    AND path IS NOT NULL
             """
 
             results = db_connection.execute(query).df()
+            print(results)
 
             if not results.empty:
                 for _, row in results.iterrows():
-                    if row['year'] == self.year_from and row['image_path']:
-                        self.start_image_path = Path(row['image_path'])
-                    elif row['year'] == self.year_to and row['image_path']:
-                        self.end_image_path = Path(row['image_path'])
+                    if row['year'] == self.year_from and row['path']:
+                        self.start_image_path = Path(row['path'])
+                    elif row['year'] == self.year_to and row['path']:
+                        self.end_image_path = Path(row['path'])
 
         except Exception as e:
             logger.warning(f"Failed to enrich image paths for location {self.location_id}: {e}")

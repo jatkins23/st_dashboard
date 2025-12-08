@@ -31,9 +31,18 @@ def register_search_callbacks(app):
         State('year-dropdown', 'value'),
         State('target-year-dropdown', 'value'),
         State('limit-dropdown', 'value'),
+<<<<<<< HEAD
         prevent_initial_call=True
     )
     def handle_search(n_clicks, location_id, year, target_year, limit):
+=======
+        State('media-type-checkbox', 'value'),
+        State('use-faiss-checkbox', 'value'),
+        State('use-whitening-checkbox', 'value'),
+        prevent_initial_call=True
+    )
+    def handle_search(n_clicks, location_id, year, target_year, limit, media_type, use_faiss, use_whitening):
+>>>>>>> a6597d193907f1f57399b3aaec93a584cdca3f7a
         """Handle state search."""
         if not location_id or not year:
             return (
@@ -48,6 +57,9 @@ def register_search_callbacks(app):
             use_faiss_enabled = True
             use_whitening_enabled = False
 
+            # Default to 'image' if no media type selected
+            selected_media_type = media_type if media_type else 'image'
+
             # Create and execute query
             query = ImageToImageStateQuery(
                 config=state.CONFIG,
@@ -56,6 +68,7 @@ def register_search_callbacks(app):
                 year=year,
                 target_years=[target_year] if target_year else None,
                 limit=limit,
+                media_types=[selected_media_type],
                 use_faiss=use_faiss_enabled,
                 use_whitening=use_whitening_enabled,
                 remove_self=True
@@ -71,10 +84,11 @@ def register_search_callbacks(app):
                     year
                 )
 
-            # Enrich results with street names
+            # Enrich results with street names and image paths
             with get_connection(state.CONFIG.database_path, read_only=True) as con:
                 for result in results_set:
                     result.enrich_street_names(con, state.CONFIG.universe_name)
+                    result.enrich_image_path(con, state.CONFIG.universe_name, selected_media_type)
 
             # Create results panel from results set
             results_panel = ResultsPanel(id_prefix='results', results=results_set)

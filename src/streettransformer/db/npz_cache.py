@@ -114,7 +114,7 @@ class NPZCache:
             if year is None:
                 years_df = con.execute(f"""
                     SELECT DISTINCT year
-                    FROM {self.universe_name}.image_embeddings
+                    FROM {self.universe_name}.media_embeddings
                     WHERE {embedding_type} IS NOT NULL
                     ORDER BY year
                 """).df()
@@ -142,12 +142,13 @@ class NPZCache:
                         location_id,
                         location_key,
                         year,
-                        image_path,
+                        media_type,
+                        path,
                         {embedding_type}
-                    FROM {self.universe_name}.image_embeddings
+                    FROM {self.universe_name}.media_embeddings
                     WHERE year = {yr}
                         AND {embedding_type} IS NOT NULL
-                    ORDER BY location_id
+                    ORDER BY location_id, media_type
                 """).df()
 
             if df.empty:
@@ -161,7 +162,8 @@ class NPZCache:
                 'location_ids': df['location_id'].values,
                 'location_keys': df['location_key'].values,
                 'years': df['year'].values,
-                'image_paths': df['image_path'].values,
+                'media_types': df['media_type'].values,
+                'paths': df['path'].values,
                 'created_at': datetime.now().isoformat(),
                 'universe_name': self.universe_name,
                 'embedding_type': embedding_type,
@@ -225,7 +227,8 @@ class NPZCache:
             'location_id': data['location_ids'],
             'location_key': data['location_keys'].astype(str),
             'year': data['years'],
-            'image_path': data['image_paths'].astype(str)
+            'media_type': data['media_types'].astype(str),
+            'path': data['paths'].astype(str)
         })
 
         # Extract cache info
@@ -352,7 +355,7 @@ class NPZCache:
         with get_connection(self.config.database_path, read_only=True) as con:
             db_count = con.execute(f"""
                 SELECT COUNT(*) as count
-                FROM {self.universe_name}.image_embeddings
+                FROM {self.universe_name}.media_embeddings
                 WHERE year = {year}
                     AND {embedding_type} IS NOT NULL
             """).fetchone()[0]

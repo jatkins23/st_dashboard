@@ -26,7 +26,7 @@ __version__ = "0.1.0"
 
 from .config import STConfig
 from .db.database import Database, get_connection
-from .db.embedding_db import EmbeddingDB, ImageEmbedding
+from .db.embedding_db import EmbeddingDB, MediaEmbedding, ImageEmbedding
 from .db.npz_cache import NPZCache, CacheInfo
 from .db.faiss_index import FAISSIndexer, IndexInfo
 from .db.whitening import WhiteningTransform, WhiteningStats
@@ -52,6 +52,7 @@ __all__ = [
 
     # Core embedding storage
     "EmbeddingDB",
+    "MediaEmbedding",
     "ImageEmbedding",
 
     # Caching

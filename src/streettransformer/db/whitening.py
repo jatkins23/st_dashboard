@@ -118,6 +118,7 @@ class WhiteningTransform:
         self,
         year: int,
         embedding_type: str = 'embedding',
+        media_type: str | None = None,
         n_components: int | None = None,
         n_samples: int | None = None,
         use_cache: bool = True,
@@ -128,6 +129,7 @@ class WhiteningTransform:
         Args:
             year: Year to compute statistics for
             embedding_type: Type of embedding
+            media_type: Optional media type filter (e.g., 'image', 'mask')
             n_components: Number of PCA components (default: vector_dim)
             n_samples: Number of samples to use (default: all)
             use_cache: Use NPZ cache if available
@@ -148,31 +150,42 @@ class WhiteningTransform:
 
         logger.info(f"Computing whitening statistics for year {year}...")
 
+        # Build media type filter
+        media_filter = f"AND media_type = '{media_type}'" if media_type else ""
+
         # Load embeddings
         if use_cache:
             try:
                 data = self.cache.load(year, embedding_type)
-                embeddings = data['embeddings']
-                logger.info(f"Loaded {len(embeddings)} embeddings from cache")
+                # Filter by media_type if specified
+                if media_type and 'media_type' in data['metadata'].columns:
+                    mask = data['metadata']['media_type'] == media_type
+                    embeddings = data['embeddings'][mask]
+                    logger.info(f"Loaded {len(embeddings)} {media_type} embeddings from cache")
+                else:
+                    embeddings = data['embeddings']
+                    logger.info(f"Loaded {len(embeddings)} embeddings from cache")
             except FileNotFoundError:
                 logger.info("Cache not found, loading from database...")
                 with get_connection(self.config.database_path, read_only=True) as con:
                     df = con.execute(f"""
-                        SELECT {embedding_type}
-                        FROM {self.universe_name}.image_embeddings
+                        SELECT embedding
+                        FROM {self.universe_name}.media_embeddings
                         WHERE year = {year}
-                            AND {embedding_type} IS NOT NULL
+                            {media_filter}
+                            AND embedding IS NOT NULL
                     """).df()
-                embeddings = np.stack(df[embedding_type].values).astype(np.float32)
+                embeddings = np.stack(df['embedding'].values).astype(np.float32)
         else:
             with get_connection(self.config.database_path, read_only=True) as con:
                 df = con.execute(f"""
-                    SELECT {embedding_type}
-                    FROM {self.universe_name}.image_embeddings
+                    SELECT embedding
+                    FROM {self.universe_name}.media_embeddings
                     WHERE year = {year}
-                        AND {embedding_type} IS NOT NULL
+                        {media_filter}
+                        AND embedding IS NOT NULL
                 """).df()
-            embeddings = np.stack(df[embedding_type].values).astype(np.float32)
+            embeddings = np.stack(df['embedding'].values).astype(np.float32)
 
         # Sample if requested
         if n_samples is not None and n_samples < len(embeddings):
@@ -296,6 +309,7 @@ class WhiteningTransform:
         results: pd.DataFrame,
         year: int,
         embedding_type: str = 'embedding',
+        media_type: str | None = None,
         top_k: int | None = None
     ) -> pd.DataFrame:
         """Rerank search results using whitened similarities.
@@ -308,6 +322,7 @@ class WhiteningTransform:
             results: Results DataFrame (must have 'location_id' column)
             year: Year
             embedding_type: Type of embedding
+            media_type: Optional media type filter
             top_k: Return only top k results (default: all)
 
         Returns:
@@ -317,14 +332,28 @@ class WhiteningTransform:
             return results
 
         # Load embeddings for all results
-        location_ids = results['location_id'].tolist()
-        location_ids_str = ','.join(map(str, location_ids))
+        # Need to match on both location_id and media_type to avoid pulling multiple media types per location
+        if 'media_type' in results.columns:
+            # Build exact matches: (location_id, media_type) pairs
+            location_media_pairs = list(zip(results['location_id'], results['media_type']))
+            # Create WHERE clause for exact matching
+            where_conditions = ' OR '.join([
+                f"(location_id = {loc_id} AND media_type = '{mt}')"
+                for loc_id, mt in location_media_pairs
+            ])
+        else:
+            # Fallback to just location_ids if media_type not in results
+            location_ids = results['location_id'].tolist()
+            location_ids_str = ','.join(map(str, location_ids))
+            where_conditions = f"location_id IN ({location_ids_str})"
+            if media_type:
+                where_conditions += f" AND media_type = '{media_type}'"
 
         with get_connection(self.config.database_path, read_only=True) as con:
             embeddings_df = con.execute(f"""
-                SELECT location_id, {embedding_type}
-                FROM {self.universe_name}.image_embeddings
-                WHERE location_id IN ({location_ids_str})
+                SELECT location_id, media_type, {embedding_type}
+                FROM {self.universe_name}.media_embeddings
+                WHERE ({where_conditions})
                     AND year = {year}
                     AND {embedding_type} IS NOT NULL
             """).df()
@@ -343,13 +372,24 @@ class WhiteningTransform:
         # Compute whitened similarities
         similarities = np.dot(results_whitened, query_whitened)
 
-        # Create mapping from location_id to similarity
-        sim_map = dict(zip(embeddings_df['location_id'], similarities))
+        # Create mapping from (location_id, media_type) to similarity
+        if 'media_type' in results.columns and 'media_type' in embeddings_df.columns:
+            # Create composite key for exact matching
+            embeddings_df['_key'] = embeddings_df['location_id'].astype(str) + '_' + embeddings_df['media_type']
+            sim_map = dict(zip(embeddings_df['_key'], similarities))
 
-        # Update results with new similarities
-        results = results.copy()
-        results['similarity_original'] = results['similarity']
-        results['similarity'] = results['location_id'].map(sim_map)
+            # Update results with new similarities
+            results = results.copy()
+            results['similarity_original'] = results['similarity']
+            results['_key'] = results['location_id'].astype(str) + '_' + results['media_type']
+            results['similarity'] = results['_key'].map(sim_map)
+            results = results.drop(columns=['_key'])
+        else:
+            # Fallback to just location_id mapping
+            sim_map = dict(zip(embeddings_df['location_id'], similarities))
+            results = results.copy()
+            results['similarity_original'] = results['similarity']
+            results['similarity'] = results['location_id'].map(sim_map)
 
         # Remove rows where we couldn't compute whitened similarity
         results = results.dropna(subset=['similarity'])
