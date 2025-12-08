@@ -31,11 +31,9 @@ def register_search_callbacks(app):
         State('year-dropdown', 'value'),
         State('target-year-dropdown', 'value'),
         State('limit-dropdown', 'value'),
-        State('use-faiss-checkbox', 'value'),
-        State('use-whitening-checkbox', 'value'),
         prevent_initial_call=True
     )
-    def handle_search(n_clicks, location_id, year, target_year, limit, use_faiss, use_whitening):
+    def handle_search(n_clicks, location_id, year, target_year, limit):
         """Handle state search."""
         if not location_id or not year:
             return (
@@ -46,8 +44,9 @@ def register_search_callbacks(app):
             )
 
         try:
-            use_faiss_enabled = 'faiss' in (use_faiss or [])
-            use_whitening_enabled = 'whitening' in (use_whitening or [])
+            # Configuration settings
+            use_faiss_enabled = True
+            use_whitening_enabled = False
 
             # Create and execute query
             query = ImageToImageStateQuery(

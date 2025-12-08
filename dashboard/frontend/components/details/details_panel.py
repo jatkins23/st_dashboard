@@ -31,6 +31,29 @@ class DetailsPanel(BaseComponent):
         """
         return []
 
+    @property # Can probably turn this whole thing just into some skeleton
+    def _header(self) -> DashComponent:
+        return dbc.CardHeader([
+            html.Div([
+                html.Span("Location Detail", className='fw-bold'),
+                dbc.Button(
+                    html.I(className='fas fa-chevron-down'),
+                    id='details-collapse-btn',
+                    color='link', size='sm', className='ms-auto p-0'
+                )
+            ], className='d-flex align-items-center justify-content-between')
+        ])
+        
+    @property
+    def _body(self) -> DashComponent:
+        return dbc.Collapse([
+            dbc.CardBody(
+                content,
+                id='details-content',
+                style={'maxHeight': '100%', 'overflowY': 'auto'}
+            )
+        ], id='details-collapse', is_open=True)
+    
     @property
     def layout(self) -> DashComponent:
         """Return the complete panel with card wrapper (for use in layout)."""
@@ -40,25 +63,10 @@ class DetailsPanel(BaseComponent):
         # Note: Card visibility is controlled by the details callback via 'details-card' style
         return html.Div([
             dbc.Card([
-                dbc.CardHeader([
-                    html.Div([
-                        html.Span("Location Detail", className='fw-bold'),
-                        dbc.Button(
-                            html.I(className='fas fa-chevron-down'),
-                            id='details-collapse-btn',
-                            color='link', size='sm', className='ms-auto p-0'
-                        )
-                    ], className='d-flex align-items-center justify-content-between')
-                ]),
-                dbc.Collapse([
-                    dbc.CardBody(
-                        content,
-                        id='details-content',
-                        style={'maxHeight': '100%', 'overflowY': 'auto'}
-                    )
-                ], id='details-collapse', is_open=True)
+                self._header,
+                self._body
             ], id='details-card', style={'display': 'none'})
-        ], style={
+        ], style={ # TODO: !! Move to an actual style file
             'position': 'absolute',
             'top': '10px',
             'left': '10px',

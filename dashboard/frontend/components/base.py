@@ -6,11 +6,8 @@ from typing import Protocol
 
 from dash import Dash
 from dash.development.base_component import Component as DashComponent
-
-
 class Registerable(Protocol):
     def register_callbacks(self, app: Dash) -> None: ...
-
 
 @dataclass
 class BaseComponent(ABC):

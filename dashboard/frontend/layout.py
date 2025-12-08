@@ -127,22 +127,6 @@ def create_search_form(available_years: list):
         ], width=1),
 
         dbc.Col([
-            dbc.Label("Options", size='sm'),
-            dbc.Checklist(
-                id='use-faiss-checkbox',
-                options=[{'label': ' FAISS', 'value': 'faiss'}],
-                value=['faiss'],
-                switch=True
-            ),
-            dbc.Checklist(
-                id='use-whitening-checkbox',
-                options=[{'label': ' Whitening', 'value': 'whitening'}],
-                value=[],
-                switch=True
-            )
-        ], width=2),
-
-        dbc.Col([
             dbc.Button(
                 'Search',
                 id='search-btn',

@@ -4,8 +4,8 @@ from ..base import BaseComponent
 from dash.development.base_component import Component as DashComponent
 
 from streettransformer.query import QueryResultsSet
-from .results_state_card import ResultsStateCard
-#from .results_change_card import ResultsChangeCard
+#from .zzz_results_state_card import ResultsStateCard # TODO: Confirm this is fine
+from .results_cards import ResultsStateCard, ResultsChangeCard
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class ResultsPanel(BaseComponent):
         elif len(self.results) == 0:
             return [html.Div("No results found.", className='text-muted fst-italic')]
         else:
-            accordion_items = [ResultsStateCard(i, i+1, res)() for i, res in enumerate(self.results)]
+            accordion_items = [ResultsStateCard(i, i+1, res)() for i, res in enumerate(self.results)] # TODO: !! Convert this to a dispatcher somehow
             accordion = dbc.Accordion(
                 accordion_items,
                 start_collapsed=True,
@@ -64,4 +64,4 @@ class ResultsPanel(BaseComponent):
             'maxHeight': 'calc(80vh - 20px)',
             'overflowY': 'auto',
             'zIndex': 1000
-        })
+        }) # TODO: refactor the style to something more elegant
