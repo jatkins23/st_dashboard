@@ -127,8 +127,6 @@ def create_search_form(available_years: list):
         ], width=1),
 
         dbc.Col([
-<<<<<<< HEAD
-=======
             dbc.Label("Media Type", size='sm'),
             dcc.Dropdown(
                 id='media-type-checkbox',
@@ -159,7 +157,6 @@ def create_search_form(available_years: list):
         ], width=2),
 
         dbc.Col([
->>>>>>> a6597d193907f1f57399b3aaec93a584cdca3f7a
             dbc.Button(
                 'Search',
                 id='search-btn',
