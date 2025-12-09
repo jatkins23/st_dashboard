@@ -4,7 +4,6 @@ from ..base import BaseComponent
 from dash.development.base_component import Component as DashComponent
 
 from streettransformer.query import QueryResultsSet
-#from .zzz_results_state_card import ResultsStateCard # TODO: Confirm this is fine
 from .results_cards import ResultsStateCard, ResultsChangeCard
 
 import logging

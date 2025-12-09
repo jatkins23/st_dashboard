@@ -13,11 +13,8 @@ from streettransformer import STConfig, EmbeddingDB
 from streettransformer.db.database import get_connection
 from dash import Dash
 import dash_bootstrap_components as dbc
-from .frontend.components.dashboard import Dashboard
+from .components.dashboard import Dashboard
 
-#from .frontend.layout import create_app, create_layout
-#from frontend.layout import Layout
-from .callbacks import register_all_callbacks
 from .utils.map_utils import load_location_coordinates, load_projects, load_all_streets
 from . import state
 
@@ -110,35 +107,17 @@ def main():
         assets_folder=str(assets_folder)
     )
 
-    # Create dashboard and component instances
-    from .components.search_form import SearchForm
-    from .components.results.results_panel import ResultsPanel
-    from .components.details.details_panel import DetailsPanel
-    from .components.map_component import Map
-
+    # Create dashboard (which creates all component instances internally)
     dashboard = Dashboard(
         universe_name=args.universe,
         available_years=available_years,
         all_streets=all_streets
     )
-    search_form = SearchForm(
-        available_years=available_years,
-        all_streets=all_streets
-    )
-    results_panel = ResultsPanel()
-    details_panel = DetailsPanel()
-    map_component = Map()
 
     app.layout = dashboard.layout
 
-    # Register component callbacks
-    search_form.register_callbacks(app)
-    results_panel.register_callbacks(app)
-    details_panel.register_callbacks(app)
-    map_component.register_callbacks(app)
-
-    # Register all other callbacks
-    register_all_callbacks(app)
+    # Register all component callbacks
+    dashboard.register_callbacks(app)
 
     print(f"\n{'='*60}")
     print(f"Street Transformer Dashboard")

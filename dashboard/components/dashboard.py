@@ -42,13 +42,94 @@ class Dashboard(BaseComponent):
         self.available_years = available_years
         self.all_streets = all_streets
 
-    def register_callbacks(self, app):
-        """Register callbacks for the dashboard.
+        # Create component instances
+        self.search_form = SearchForm(
+            available_years=available_years,
+            all_streets=all_streets
+        )
+        self.map_component = Map()
+        self.results_panel = ResultsPanel()
+        self.details_panel = DetailsPanel()
 
-        Note: Callbacks are registered separately in the callbacks module.
-        This method is here for consistency with BaseComponent interface.
+
+    def register_callbacks(self, app):
+        """Register all component callbacks.
+
+        This method registers callbacks for all child components plus
+        the main search callback that coordinates between them.
         """
-        pass
+        from dash import Input, Output, State
+        import dash_bootstrap_components as dbc
+
+        # Register child component callbacks
+        self.search_form.register_callbacks(app)
+        self.map_component.register_callbacks(app)
+        self.results_panel.register_callbacks(app)
+        self.details_panel.register_callbacks(app)
+
+        # Register search callback (coordinates SearchForm → ResultsPanel)
+        @app.callback(
+            Output('results-content', 'children'),
+            Output('results-card', 'style'),
+            Output('result-locations', 'data'),
+            Output('query-year', 'data'),
+            Input('search-btn', 'n_clicks'),
+            State('street-selector', 'value'),
+            State('year-selector', 'value'),
+            State('target-year-selector', 'value'),
+            State('limit-dropdown', 'value'),
+            State('media-type-selector', 'value'),
+            State('use-faiss-checkbox', 'value'),
+            State('use-whitening-checkbox', 'value'),
+            prevent_initial_call=True
+        )
+        def handle_search(n_clicks, selected_streets, year, target_year, limit, media_type, use_faiss, use_whitening):
+            """Handle state search."""
+            from .search import get_location_from_streets, execute_image_search
+            from .. import state
+
+            # Get location_id from selected streets
+            location_id = get_location_from_streets(selected_streets, state)
+
+            if not location_id or not year:
+                return (
+                    dbc.Alert("Please select streets and year", color='warning'),
+                    {'display': 'block'},
+                    [],
+                    None
+                )
+
+            try:
+                results_set = execute_image_search(location_id, year, target_year, limit, media_type, state)
+
+                if len(results_set) == 0:
+                    return (
+                        dbc.Alert(f"No results found", color='info'),
+                        {'display': 'block'},
+                        [],
+                        year
+                    )
+
+                # Create results panel from results set
+                results_panel = ResultsPanel(id_prefix='results', results=results_set)
+                result_location_ids = [r.location_id for r in results_set]
+
+                return (
+                    results_panel.content,
+                    {'display': 'block'},
+                    result_location_ids,
+                    year
+                )
+
+            except Exception as e:
+                logger.error(f"Search error: {e}", exc_info=True)
+                return (
+                    dbc.Alert(f"Error: {str(e)}", color='danger'),
+                    {'display': 'block'},
+                    [],
+                    None
+                )
+
 
     def _header(self):
         return dbc.Row([
@@ -71,11 +152,7 @@ class Dashboard(BaseComponent):
             # Search card
             dbc.Row([
                 dbc.Col([
-                    SearchForm(
-                        title = "Image-to-Image State Search",
-                        available_years=self.available_years,
-                        all_streets=self.all_streets
-                    ).layout
+                    self.search_form.layout
                 ])
             ]),
 
@@ -84,11 +161,11 @@ class Dashboard(BaseComponent):
                 dbc.Col([
                     html.Div([
                         # Map
-                        Map().layout,
+                        self.map_component.layout,
                         # Floating results panel
-                        ResultsPanel()(),
+                        self.results_panel(),
                         # Floating details panel
-                        DetailsPanel()()
+                        self.details_panel()
                     ], style={'position': 'relative'})
                 ]),
             ], className='mb-3'),

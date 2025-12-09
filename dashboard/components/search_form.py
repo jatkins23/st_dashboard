@@ -4,8 +4,12 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from dash.development.base_component import Component as DashComponent
+from dash import Input, Output, State
 
 from .base import BaseComponent
+from .. import state
+
+from streettransformer.db.database import get_connection
 
 import logging
 logger = logging.getLogger(__name__)
@@ -42,11 +46,6 @@ class SearchForm(BaseComponent):
         Registers the street filtering callback that updates available street options
         based on selected streets to show only valid combinations.
         """
-        from dash import Input, Output, State
-        from streettransformer.db.database import get_connection
-        from ... import state
-        import logging
-
         logger = logging.getLogger(__name__)
 
         @app.callback(

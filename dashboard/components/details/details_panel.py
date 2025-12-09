@@ -1,16 +1,8 @@
 from dash import html
 import dash_bootstrap_components as dbc
 from dash.development.base_component import Component as DashComponent
-from . import (
-    DetailsStatsViewer,
-    DetailsImageViewer,
-    DetailsDocumentViewer,
-    DetailsProjectViewer
-)
 
-from streettransformer.db.database import get_connection
 from ..base import BaseComponent
-from ... import state
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,7 +21,10 @@ class DetailsPanel(BaseComponent):
     def register_callbacks(self, app):
         """Register callbacks for the panel."""
         from dash import Input, Output, State, html
+        from .details_utils import get_location_from_streets, get_location_details
+        from ... import state
 
+        # Panel collapse toggle callback
         @app.callback(
             Output('details-collapse', 'is_open'),
             Output('details-collapse-btn', 'children'),
@@ -38,12 +33,58 @@ class DetailsPanel(BaseComponent):
             prevent_initial_call=True
         )
         def toggle_details_panel(n_clicks, is_open):
-            # TODO: confirm this actually works. I don't think it does
             """Toggle details panel collapse."""
             new_state = not is_open
             icon = html.I(className='fas fa-chevron-up' if new_state else 'fas fa-chevron-down')
             return new_state, icon
 
+        # Details update callback (coordinates StreetSelector + Map → DetailsPanel)
+        @app.callback(
+            Output('details-content', 'children'),
+            Output('details-card', 'style'),
+            Output('query-location-id', 'data'),
+            Input('street-selector', 'value'),
+            Input('main-map', 'clickData'),
+            Input('query-year', 'data'),
+            prevent_initial_call=False
+        )
+        def update_details(selected_streets, click_data, query_year):
+            """Update details panel when location is selected."""
+            location_id = None
+
+            # Handle map click first (takes priority)
+            if click_data and 'points' in click_data and len(click_data['points']) > 0:
+                point = click_data['points'][0]
+                if 'customdata' in point:
+                    location_id = point['customdata']
+
+            # If no map click, handle street selection
+            elif selected_streets and len(selected_streets) > 0:
+                location_id = get_location_from_streets(selected_streets, state)
+
+            if not location_id:
+                return (
+                    html.Div("Select streets or click on the map", className='text-muted fst-italic'),
+                    {'display': 'none'},
+                    None
+                )
+
+            # Get location details
+            details_content, location_info = get_location_details(location_id, query_year, state)
+
+            if details_content is None:
+                return (
+                    dbc.Alert(f"Location {location_id} not found", color='warning'),
+                    {'display': 'block'},
+                    location_id
+                )
+
+            return (
+                html.Div(details_content),
+                {'display': 'block'},
+                location_info
+            )            
+    
     @property
     def content(self) -> list:
         """Return placeholder content.

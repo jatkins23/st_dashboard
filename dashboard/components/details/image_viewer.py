@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from typing import Optional, Tuple, List
 
-from ....utils.display import encode_image_to_base64
+from ...utils.display import encode_image_to_base64
 
 
 class DetailsImageViewer:

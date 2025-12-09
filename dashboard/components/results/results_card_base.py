@@ -55,7 +55,6 @@ class BaseResultsCard(BaseComponent):
         ], className='mb-2')
     
     @property
-    @abstractmethod
     def layout(self) -> dbc.AccordionItem:
         # Create title with badge
         title = html.Div([
