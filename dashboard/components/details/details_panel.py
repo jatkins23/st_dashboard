@@ -42,7 +42,7 @@ class DetailsPanel(BaseComponent):
         @app.callback(
             Output('details-content', 'children'),
             Output('details-card', 'style'),
-            Output('query-location-id', 'data'),
+            Output('selected-location-id', 'data'),
             Input('street-selector', 'value'),
             Input('main-map', 'clickData'),
             Input('query-year', 'data'),

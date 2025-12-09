@@ -67,14 +67,14 @@ class Dashboard(BaseComponent):
         self.results_panel.register_callbacks(app)
         self.details_panel.register_callbacks(app)
 
-        # Register search callback (coordinates SearchForm → ResultsPanel)
+        # Register search callback (coordinates selected-location-id → ResultsPanel)
         @app.callback(
             Output('results-content', 'children'),
             Output('results-card', 'style'),
             Output('result-locations', 'data'),
             Output('query-year', 'data'),
             Input('search-btn', 'n_clicks'),
-            State('street-selector', 'value'),
+            State('selected-location-id', 'data'),
             State('year-selector', 'value'),
             State('target-year-selector', 'value'),
             State('limit-dropdown', 'value'),
@@ -83,17 +83,18 @@ class Dashboard(BaseComponent):
             State('use-whitening-checkbox', 'value'),
             prevent_initial_call=True
         )
-        def handle_search(n_clicks, selected_streets, year, target_year, limit, media_type, use_faiss, use_whitening):
-            """Handle state search."""
-            from .search import get_location_from_streets, execute_image_search
-            from .. import state
+        def handle_search(n_clicks, location_id, year, target_year, limit, media_type, use_faiss, use_whitening):
+            """Handle state search.
 
-            # Get location_id from selected streets
-            location_id = get_location_from_streets(selected_streets, state)
+            Reads the selected location from selected-location-id state, which is set by
+            the DetailsPanel when user selects streets or clicks the map.
+            """
+            from .search import execute_image_search
+            from .. import state
 
             if not location_id or not year:
                 return (
-                    dbc.Alert("Please select streets and year", color='warning'),
+                    dbc.Alert("Please select a location and year", color='warning'),
                     {'display': 'block'},
                     [],
                     None
@@ -171,7 +172,7 @@ class Dashboard(BaseComponent):
             ], className='mb-3'),
 
             # Data stores
-            dcc.Store(id='query-location-id'),
+            dcc.Store(id='selected-location-id'),
             dcc.Store(id='query-year'),
             dcc.Store(id='result-locations'),
         ]

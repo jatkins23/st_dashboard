@@ -4,10 +4,11 @@ from dash import dcc, Input, Output
 from dash.development.base_component import Component as DashComponent
 
 from .base import BaseComponent
+from ..utils.map_utils import create_location_map
+from .. import state
 
 import logging
 logger = logging.getLogger(__name__)
-
 
 class Map(BaseComponent):
     """Map component that displays locations and projects.
@@ -48,12 +49,10 @@ class Map(BaseComponent):
         - A query location is selected
         - Search results are returned
         """
-        from ..utils.map_utils import create_location_map
-        from .. import state
 
         @app.callback(
             Output('main-map', 'figure'),
-            Input('query-location-id', 'data'),
+            Input('selected-location-id', 'data'),
             Input('result-locations', 'data'),
             prevent_initial_call=False
         )

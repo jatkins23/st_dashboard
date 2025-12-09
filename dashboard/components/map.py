@@ -17,7 +17,7 @@ def register_map_callbacks(app):
 
     @app.callback(
         Output('main-map', 'figure'),
-        Input('query-location-id', 'data'),
+        Input('selected-location-id', 'data'),
         Input('result-locations', 'data'),
         prevent_initial_call=False
     )
