@@ -13,7 +13,6 @@ from .. import state
 
 logger = logging.getLogger(__name__)
 
-
 def register_search_callbacks(app):
     """Register search callbacks.
 
@@ -28,21 +27,15 @@ def register_search_callbacks(app):
         Output('query-year', 'data'),
         Input('search-btn', 'n_clicks'),
         State('location-id-input', 'value'),
-        State('year-dropdown', 'value'),
-        State('target-year-dropdown', 'value'),
+        State('year-selector', 'value'),
+        State('target-year-selector', 'value'),
         State('limit-dropdown', 'value'),
-<<<<<<< HEAD
-        prevent_initial_call=True
-    )
-    def handle_search(n_clicks, location_id, year, target_year, limit):
-=======
-        State('media-type-checkbox', 'value'),
+        State('media-type-selector', 'value'),
         State('use-faiss-checkbox', 'value'),
         State('use-whitening-checkbox', 'value'),
         prevent_initial_call=True
     )
     def handle_search(n_clicks, location_id, year, target_year, limit, media_type, use_faiss, use_whitening):
->>>>>>> a6597d193907f1f57399b3aaec93a584cdca3f7a
         """Handle state search."""
         if not location_id or not year:
             return (

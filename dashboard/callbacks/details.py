@@ -17,7 +17,6 @@ from .. import state
 
 logger = logging.getLogger(__name__)
 
-
 def register_details_callbacks(app):
     """Register details callbacks.
 
@@ -29,22 +28,52 @@ def register_details_callbacks(app):
         Output('details-content', 'children'),
         Output('details-card', 'style'),
         Output('query-location-id', 'data'),
-        Input('location-id-input', 'value'),
+        Input('street-selector', 'value'),
         Input('main-map', 'clickData'),
         Input('query-year', 'data'),
         prevent_initial_call=False
     )
-    def update_details(location_id, click_data, query_year):
+    def update_details(selected_streets, click_data, query_year):
         """Update details panel when location is selected."""
-        # Handle map click
+        location_id = None
+
+        # Handle map click first (takes priority)
         if click_data and 'points' in click_data and len(click_data['points']) > 0:
             point = click_data['points'][0]
             if 'customdata' in point:
                 location_id = point['customdata']
 
+        # If no map click, handle street selection
+        elif selected_streets and len(selected_streets) > 0:
+            try:
+                with get_connection(state.CONFIG.database_path, read_only=True) as con:
+                    # Find locations that match ALL selected streets
+                    street_conditions = []
+                    for street in selected_streets:
+                        street_conditions.append(f"""
+                            (street1 = '{street}'
+                             OR street2 = '{street}'
+                             OR list_contains(additional_streets, '{street}'))
+                        """)
+
+                    where_clause = " AND ".join(street_conditions)
+
+                    query = f"""
+                        SELECT location_id
+                        FROM {state.CONFIG.universe_name}.locations
+                        WHERE {where_clause}
+                        LIMIT 1
+                    """
+                    result = con.execute(query).df()
+
+                    if not result.empty:
+                        location_id = result.iloc[0]['location_id']
+            except Exception as e:
+                logger.error(f"Error finding location by streets: {e}", exc_info=True)
+
         if not location_id:
             return (
-                html.Div("Enter a location ID or click on the map", className='text-muted fst-italic'),
+                html.Div("Select streets or click on the map", className='text-muted fst-italic'),
                 {'display': 'none'},
                 None
             )

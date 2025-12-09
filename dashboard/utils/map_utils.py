@@ -3,7 +3,12 @@
 import plotly.graph_objects as go
 import pandas as pd
 from ..config import COLORS
+from pathlib import Path
+import logging
 
+logger = logging.getLogger(__name__)
+
+SAVED_DATA_PATH = Path('dashboard/data')
 
 def _create_project_hover_text(df: pd.DataFrame, prefix: str = "") -> pd.Series:
     """Create hover text for project markers.
@@ -234,6 +239,54 @@ def load_projects(db_connection_func, universe_name:str = 'nyc') -> pd.DataFrame
         return df
 
 
+def load_all_streets(config, db_connection_func) -> list:
+    """Load all unique street names from locations.
+
+    Args:
+        config: STConfig object with database path and universe name
+        db_connection_func: Function that returns database connection
+
+    Returns:
+        Sorted list of unique street names
+    """
+    # Try to load it from the saved data
+    df = read_saved_data('street_list.csv', config.universe_name)
+    
+    # # If it doesn't exist, then load it from the db
+    if df is None:
+        logger.debug('Saved `street_list` not found.\n\tLoading from db')
+        with db_connection_func() as con:
+            # Get all street columns and unnest additional_streets array
+            query = f"""
+                WITH all_streets AS (
+                    SELECT street1 as street FROM {config.universe_name}.locations WHERE street1 IS NOT NULL
+                    UNION
+                    SELECT street2 as street FROM {config.universe_name}.locations WHERE street2 IS NOT NULL
+                    UNION
+                    SELECT UNNEST(additional_streets) as street
+                    FROM {config.universe_name}.locations
+                    WHERE additional_streets IS NOT NULL
+                )
+                SELECT DISTINCT street
+                FROM all_streets
+                WHERE EXISTS (
+                    SELECT 1 FROM {config.universe_name}.locations l
+                    INNER JOIN {config.universe_name}.media_embeddings e
+                        ON l.location_id = e.location_id
+                    WHERE e.embedding IS NOT NULL
+                    AND (l.street1 = all_streets.street
+                        OR l.street2 = all_streets.street
+                        OR list_contains(l.additional_streets, all_streets.street))
+                )
+                ORDER BY street
+            """
+            df = con.execute(query).df()
+    street_list =  df['street'].dropna().to_list()
+    #street_list = [f'street_{x}' for x in range(100)]
+        
+    return street_list
+
+
 def get_location_details(config, db_connection_func, location_id: int) -> dict:
     """Get detailed information about a specific location.
 
@@ -285,3 +338,21 @@ def get_location_details(config, db_connection_func, location_id: int) -> dict:
             'last_year': int(row['last_year']) if pd.notna(row['last_year']) else None,
             'image_count': int(row['image_count'])
         }
+
+def read_saved_data(file_name: str, universe_name: str, saved_data_path: Path = SAVED_DATA_PATH): 
+    file_path = saved_data_path / universe_name / file_name
+    if not file_path.exists():
+        return None
+    
+    match file_path.suffix:
+        case '.csv':
+            return pd.read_csv(file_path)
+        case '.parquet':
+            return pd.read_parquet(file_path)
+        case '.txt':
+            with open(file_path, 'r') as file:
+                return file.read()
+        case _:
+            logger.warning(f'Unsure how to handle `{file_path}`')
+            return file_path
+        

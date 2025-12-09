@@ -48,7 +48,7 @@ class DetailsPanel(BaseComponent):
     def _body(self) -> DashComponent:
         return dbc.Collapse([
             dbc.CardBody(
-                content,
+                self.content,
                 id='details-content',
                 style={'maxHeight': '100%', 'overflowY': 'auto'}
             )
@@ -57,8 +57,6 @@ class DetailsPanel(BaseComponent):
     @property
     def layout(self) -> DashComponent:
         """Return the complete panel with card wrapper (for use in layout)."""
-        content = self.content
-
         # Return complete card structure with floating style
         # Note: Card visibility is controlled by the details callback via 'details-card' style
         return html.Div([

@@ -7,29 +7,50 @@ Usage:
 
 import argparse
 import logging
+from pathlib import Path
 
 from streettransformer import STConfig, EmbeddingDB
 from streettransformer.db.database import get_connection
+from dash import Dash
+import dash_bootstrap_components as dbc
+from .frontend.components.dashboard import Dashboard
 
-from .frontend.layout import create_app, create_layout
+#from .frontend.layout import create_app, create_layout
 #from frontend.layout import Layout
 from .callbacks import register_all_callbacks
-from .utils.map_utils import load_location_coordinates, load_projects
+from .utils.map_utils import load_location_coordinates, load_projects, load_all_streets
 from . import state
 
 logger = logging.getLogger(__name__)
 
-
 def main():
     """Main entry point."""
+    import os
+
     parser = argparse.ArgumentParser(description="Simple Image Embedding Dashboard")
-    parser.add_argument('--db', type=str, required=True, help='Path to DuckDB database')
-    parser.add_argument('--universe', '-u', type=str, required=True, help='Universe name')
+    parser.add_argument(
+        '--db',
+        type=str,
+        default=os.getenv('ST_DATABASE_PATH'),
+        help='Path to DuckDB database (default: ST_DATABASE_PATH env var)'
+    )
+    parser.add_argument(
+        '--universe', '-u',
+        type=str,
+        default='nyc',
+        help='Universe name (default: nyc)'
+    )
     parser.add_argument('--port', '-p', type=int, default=8050, help='Port to run on')
     parser.add_argument('--host', type=str, default='127.0.0.1', help='Host to bind to')
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
 
     args = parser.parse_args()
+
+    # Validate required arguments
+    if args.db is None:
+        parser.error("--db is required (or set ST_DATABASE_PATH environment variable)")
+    if args.universe is None:
+        parser.error("--universe is required")
 
     # Setup logging
     logging.basicConfig(
@@ -69,12 +90,30 @@ def main():
         logger.warning(f"Could not load projects for {config.universe_name}: {e}")
         projects_df = None
 
+    # Load all unique streets for the street selector
+    logger.info("Loading street names...")
+    all_streets = load_all_streets(
+        config,
+        lambda: get_connection(config.database_path, read_only=True)
+    )
+    logger.info(f"Loaded {len(all_streets)} unique streets")
+
     # Initialize global state
     state.initialize_state(config, db, available_years, all_locations_df, projects_df)
 
     # Create app and layout
-    app = create_app()
-    app.layout = create_layout(args.universe)
+    assets_folder = Path(__file__).parent.parent / 'assets'
+    app = Dash(
+        __name__,
+        suppress_callback_exceptions=True,
+        external_stylesheets=[dbc.themes.DARKLY],
+        assets_folder=str(assets_folder)
+    )
+    app.layout = Dashboard(
+        universe_name=args.universe,
+        available_years=available_years,
+        all_streets=all_streets
+    ).layout
 
     # Register all callbacks
     register_all_callbacks(app)

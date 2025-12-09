@@ -1,13 +1,14 @@
 from dash import html
+from dash.development.base_component import Component as DashComponent
 import dash_bootstrap_components as dbc
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from ..base import BaseComponent
 from streettransformer.query import QueryResultInstance
 from logging import getLogger
 
 logger = getLogger(__name__)
 
-class BaseResultsCard(ABC, BaseComponent):
+class BaseResultsCard(BaseComponent):
     def __init__(self, id_prefix:str, rank:int, res:QueryResultInstance):
         super().__init__(id_prefix=id_prefix)
         self.rank = rank
@@ -42,11 +43,11 @@ class BaseResultsCard(ABC, BaseComponent):
 
     @property
     @abstractmethod
-    def _media_content(self) -> dbc.Component:
+    def _media_content(self) -> DashComponent:
         ...
     
     @property
-    def _location_details(self) -> dbc.Component:
+    def _location_details(self) -> DashComponent:
         return html.Div([
             html.Small([html.Strong("Location ID: "), str(self.location_id)], className='text-muted'),
             html.Br(),

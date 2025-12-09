@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "dash>=3.3.0",
     "dash-bootstrap-components>=2.0.4",
+    "dash-mantine-components>=2.4.0",
     "dotenv>=0.9.9",
     "duckdb>=1.4.2",
     "faiss-cpu>=1.13.0",
