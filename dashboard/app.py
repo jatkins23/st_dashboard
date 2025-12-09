@@ -109,13 +109,35 @@ def main():
         external_stylesheets=[dbc.themes.DARKLY],
         assets_folder=str(assets_folder)
     )
-    app.layout = Dashboard(
+
+    # Create dashboard and component instances
+    from .components.search_form import SearchForm
+    from .components.results.results_panel import ResultsPanel
+    from .components.details.details_panel import DetailsPanel
+    from .components.map_component import Map
+
+    dashboard = Dashboard(
         universe_name=args.universe,
         available_years=available_years,
         all_streets=all_streets
-    ).layout
+    )
+    search_form = SearchForm(
+        available_years=available_years,
+        all_streets=all_streets
+    )
+    results_panel = ResultsPanel()
+    details_panel = DetailsPanel()
+    map_component = Map()
 
-    # Register all callbacks
+    app.layout = dashboard.layout
+
+    # Register component callbacks
+    search_form.register_callbacks(app)
+    results_panel.register_callbacks(app)
+    details_panel.register_callbacks(app)
+    map_component.register_callbacks(app)
+
+    # Register all other callbacks
     register_all_callbacks(app)
 
     print(f"\n{'='*60}")

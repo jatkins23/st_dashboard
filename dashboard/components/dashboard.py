@@ -9,6 +9,7 @@ from .base import BaseComponent
 from .results.results_panel import ResultsPanel
 from .details.details_panel import DetailsPanel
 from .search_form import SearchForm
+from .map_component import Map
 
 import logging
 logger = logging.getLogger(__name__)
@@ -83,11 +84,7 @@ class Dashboard(BaseComponent):
                 dbc.Col([
                     html.Div([
                         # Map
-                        dcc.Graph(
-                            id='main-map',
-                            style={'height': '60vh'},
-                            config={'displayModeBar': False, 'scrollZoom': True}
-                        ),
+                        Map().layout,
                         # Floating results panel
                         ResultsPanel()(),
                         # Floating details panel

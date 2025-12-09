@@ -1,8 +1,16 @@
 from dash import html
 import dash_bootstrap_components as dbc
 from dash.development.base_component import Component as DashComponent
+from . import (
+    DetailsStatsViewer,
+    DetailsImageViewer,
+    DetailsDocumentViewer,
+    DetailsProjectViewer
+)
 
+from streettransformer.db.database import get_connection
 from ..base import BaseComponent
+from ... import state
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,7 +28,21 @@ class DetailsPanel(BaseComponent):
 
     def register_callbacks(self, app):
         """Register callbacks for the panel."""
-        pass
+        from dash import Input, Output, State, html
+
+        @app.callback(
+            Output('details-collapse', 'is_open'),
+            Output('details-collapse-btn', 'children'),
+            Input('details-collapse-btn', 'n_clicks'),
+            State('details-collapse', 'is_open'),
+            prevent_initial_call=True
+        )
+        def toggle_details_panel(n_clicks, is_open):
+            # TODO: confirm this actually works. I don't think it does
+            """Toggle details panel collapse."""
+            new_state = not is_open
+            icon = html.I(className='fas fa-chevron-up' if new_state else 'fas fa-chevron-down')
+            return new_state, icon
 
     @property
     def content(self) -> list:
