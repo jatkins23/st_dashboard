@@ -249,32 +249,39 @@ class Dashboard(BaseComponent):
         ], className='mt-3')
 
     def _top_tab_layout(self, type:str) -> DashComponent:
-        # TODO: Maybe swap type and mode? Or find better names for them
+        """Create a top-level tab with nested sub-tabs for a search type."""
         def _child_tab(mode) -> DashComponent:
-            print('here')
             search_form = getattr(self, f'{type}_{mode}_search_form')
             if not search_form:
-                logger.error(f'Search form not found: {type}, {mode}')
+                logger.error(f'Search form not found: {type}_{mode}_search_form')
                 return None
-            
-            return dcc.Tab(
-                label=f'{mode.title()} Search',
-                value=f'{type}-{mode}',
-                children=[
-                    html.Div([
-                        search_form.layout
-                    ], style={'marginTop': '10px'})
-                ]
+
+            return dmc.TabsPanel(
+                html.Div([
+                    search_form.layout
+                ], style={'marginTop': '10px'}),
+                value=f'{type}-{mode}'
             )
-        
-        return dcc.Tab(
-            label=f'{type.title()}-Based Search',
-            value=f'{type}-tabs',
-            children=dcc.Tabs(
-                id=f'{type}-search-tabs',
-                value=f'{type}-state',  # Default to state search tab,
-                children = [_child_tab(mode) for mode in ['state','change']]
-            )
+
+        return dmc.TabsPanel(
+            dmc.Tabs([
+                dmc.TabsList([
+                    dmc.TabsTab('State Search', value=f'{type}-state'),
+                    dmc.TabsTab('Change Search', value=f'{type}-change')
+                ],
+                # Style nested tabs to be smaller and more subtle
+                style={'marginTop': '10px', 'marginBottom': '5px'}
+                ),
+                _child_tab('state'),
+                _child_tab('change')
+            ],
+            id=f'{type}-search-tabs',
+            value=f'{type}-state',  # Default to state search
+            orientation='horizontal',
+            variant='pills',  # Use pill style for nested tabs
+            color='gray'
+            ),
+            value=f'{type}-tabs'
         )
 
     @property
@@ -287,24 +294,43 @@ class Dashboard(BaseComponent):
             #top_tabs = dcc.Tab()
             pass
         
-        top_tabs = []
-        
+        # Build top-level tab list and panels
+        top_tab_list = []
+        top_tab_panels = []
+
         if self.enable_image_search:
-            top_tabs.append(self._top_tab_layout('image'))
-            
+            top_tab_list.append(dmc.TabsTab('Image-Based Search', value='image-tabs'))
+            top_tab_panels.append(self._top_tab_layout('image'))
+
         if self.enable_text_search:
-            top_tabs.append(self._top_tab_layout('text'))
-        
+            top_tab_list.append(dmc.TabsTab('Text-Based Search', value='text-tabs'))
+            top_tab_panels.append(self._top_tab_layout('text'))
+
+        # Determine default tab value
+        default_tab = 'image-tabs' if self.enable_image_search else 'text-tabs'
+
         components = [
             # Header
             self._header(),
 
-            # Tabs with different search forms
-            dcc.Tabs(
-                id='search-tabs',
-                value='image-tabs',  # Default to first enabled search type
-                children=top_tabs,
-                className='mb-3'
+            # Tabs with different search forms (DMC Tabs)
+            dmc.Tabs([
+                dmc.TabsList(
+                    top_tab_list,
+                    # Style top-level tabs to be larger and more prominent
+                    style={
+                        'marginBottom': '15px',
+                        'borderBottom': '2px solid #dee2e6'
+                    }
+                ),
+                *top_tab_panels
+            ],
+            id='search-tabs',
+            value=default_tab,
+            orientation='horizontal',
+            variant='default',  # Use default style for top-level tabs (vs pills for nested)
+            color='blue',
+            className='mb-3'
             ),
 
             # Map with floating panels (shared across all tabs)

@@ -20,11 +20,22 @@
 ## Styling
 [ ] Switch to DMC
 [ ] Improve the rendering and reactivity (flexibility?) of Search_bar
-[ ] Remove SearchCard header?
+
+## Minor
+[ ] TODO: Maybe swap type and mode? Or find better names for them
+[ ] Rearrange the streets in some logical order besides alphabetical
+[X] Remove SearchCard header?
 
 # Preprocessing
 [X] hash-based Unique ID
-[ ] Repull
+[ ] Repull everything
+    [X] Images
+    [-] Segmentation
+    [ ] Split
+    [ ] Re-add to `location_year_files`? Turn this into a view?
+[ ] Rebuild the views
+[ ] Change to `core2.ddb` from `core.ddb`
+[ ] Need to convert documents to images?
 
 
 

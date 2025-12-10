@@ -238,7 +238,7 @@ class BaseSearchForm(BaseComponent):
         ]
 
         return dbc.Card([
-            dbc.CardHeader(self.title, className='fw-bold'),
+            # dbc.CardHeader(self.title, className='fw-bold'),
             dbc.CardBody([
                 dbc.Row(search_components, className='g-3', align='end')
             ])

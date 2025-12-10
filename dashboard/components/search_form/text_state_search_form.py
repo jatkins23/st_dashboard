@@ -9,7 +9,6 @@ from ... import state
 import logging
 logger = logging.getLogger(__name__)
 
-
 class TextStateSearchForm(BaseSearchForm):
     """Form for TextToImage state search.
 
