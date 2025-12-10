@@ -1,13 +1,16 @@
-"""Reusable UI component helpers.
+"""Shared UI component helpers.
 
 These are standalone rendering functions that can be used by any part of the
 application to build consistent UI components.
 """
 
+# TODO: Are all of these just part of Results?
+
 from pathlib import Path
 from dash import html
-from ...config import COLORS
+from ..config import COLORS
 
+from ..utils import encode_image_to_base64
 
 def get_similarity_badge(similarity: float):
     """Get styled similarity badge.
@@ -49,7 +52,6 @@ def render_image(image_path_or_str, max_width: int = 300):
     Returns:
         Dash HTML component (Img or error Div)
     """
-    from ...utils import encode_image_to_base64
 
     if not image_path_or_str:
         return html.Div("No image available",

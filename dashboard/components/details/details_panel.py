@@ -1,5 +1,5 @@
 from dash import html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 from dash.development.base_component import Component as DashComponent
 
 from ..base import BaseComponent
@@ -26,14 +26,17 @@ class DetailsPanel(BaseComponent):
 
         # Panel collapse toggle callback
         @app.callback(
-            Output('details-collapse', 'is_open'),
+            Output('details-collapse', 'opened'),
             Output('details-collapse-btn', 'children'),
             Input('details-collapse-btn', 'n_clicks'),
-            State('details-collapse', 'is_open'),
+            State('details-collapse', 'opened'),
             prevent_initial_call=True
         )
         def toggle_details_panel(n_clicks, is_open):
-            """Toggle details panel collapse."""
+            """Toggle details panel collapse.
+
+            Note: dmc.Collapse uses 'opened' prop in version 2.4.0.
+            """
             new_state = not is_open
             icon = html.I(className='fas fa-chevron-up' if new_state else 'fas fa-chevron-down')
             return new_state, icon
@@ -84,7 +87,7 @@ class DetailsPanel(BaseComponent):
 
             if details_content is None:
                 return (
-                    dbc.Alert(f"Location {location_id} not found", color='warning'),
+                    dmc.Alert(f"Location {location_id} not found", color='warning'),
                     {'display': 'block'}
                 )
 
@@ -104,26 +107,25 @@ class DetailsPanel(BaseComponent):
 
     @property # Can probably turn this whole thing just into some skeleton
     def _header(self) -> DashComponent:
-        return dbc.CardHeader([
-            html.Div([
-                html.Span("Location Detail", className='fw-bold'),
-                dbc.Button(
-                    html.I(className='fas fa-chevron-down'),
-                    id='details-collapse-btn',
-                    color='link', size='sm', className='ms-auto p-0'
-                )
-            ], className='d-flex align-items-center justify-content-between')
-        ])
+        return html.Div([
+            dmc.Text("Location Detail", fw=700, size='md'),
+            dmc.ActionIcon(
+                html.I(className='fas fa-chevron-down'),
+                id='details-collapse-btn',
+                variant='subtle',
+                size='sm'
+            )
+        ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'marginBottom': '0.5rem'})
         
     @property
     def _body(self) -> DashComponent:
-        return dbc.Collapse([
-            dbc.CardBody(
+        return dmc.Collapse([
+            html.Div(
                 self.content,
                 id='details-content',
                 style={'maxHeight': '100%', 'overflowY': 'auto'}
             )
-        ], id='details-collapse', is_open=True)
+        ], id='details-collapse', opened=True)
     
     @property
     def layout(self) -> DashComponent:
@@ -131,10 +133,11 @@ class DetailsPanel(BaseComponent):
         # Return complete card structure with floating style
         # Note: Card visibility is controlled by the details callback via 'details-card' style
         return html.Div([
-            dbc.Card([
+            dmc.Card([
                 self._header,
                 self._body
-            ], id='details-card', style={'display': 'none'})
+            ], id='details-card', withBorder=True, shadow='sm', p='md',
+               style={'display': 'none'})
         ], style={ # TODO: !! Move to an actual style file
             'position': 'absolute',
             'top': '10px',

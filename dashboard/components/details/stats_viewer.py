@@ -1,6 +1,7 @@
 """Stats viewer component for location details."""
 
 from dash import html
+import dash_mantine_components as dmc
 from typing import Optional
 
 
@@ -22,7 +23,7 @@ class DetailsStatsViewer:
             return []
 
         return [
-            html.H6(f"Location {self.location_id}", className='fw-bold'),
-            html.P(self.street_name, className='text-muted'),
-            html.Hr()
+            dmc.Title(f"Location {self.location_id}", order=6, fw=700),
+            dmc.Text(self.street_name, color='dimmed'),
+            dmc.Divider(my='sm')
         ]

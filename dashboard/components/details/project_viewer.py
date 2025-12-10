@@ -1,7 +1,7 @@
 """Project viewer component for location details."""
 
 from dash import html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 from typing import Optional
 from ... import state
 
@@ -21,8 +21,8 @@ class DetailsProjectViewer:
         """
         if not self.location_id or state.PROJECTS_DF is None or state.PROJECTS_DF.empty:
             return [
-                html.H6("Projects", className='fw-bold mt-3'),
-                html.Div("No projects found", className='text-muted fst-italic text-center p-3')
+                dmc.Title("Projects", order=6, fw=700, mt='md'),
+                dmc.Text("No projects found", size='sm', color='dimmed', italic=True, ta='center', p='md')
             ]
 
         # Filter projects for this location
@@ -30,39 +30,33 @@ class DetailsProjectViewer:
 
         if location_projects.empty:
             return [
-                html.H6("Projects", className='fw-bold mt-3'),
-                html.Div("No projects at this location", className='text-muted fst-italic text-center p-3')
+                dmc.Title("Projects", order=6, fw=700, mt='md'),
+                dmc.Text("No projects at this location", size='sm', color='dimmed', italic=True, ta='center', p='md')
             ]
 
         # Create table rows
-        table_header = [
-            html.Thead(html.Tr([
-                html.Th("Project Title"),
-                html.Th("Agency"),
-                html.Th("Year"),
-                html.Th("Status")
-            ]))
-        ]
-
         table_rows = []
         for _, row in location_projects.iterrows():
-            table_rows.append(html.Tr([
-                html.Td(row.get('Project Title', 'N/A'), className='small'),
-                html.Td(row.get('Lead Agency', 'N/A'), className='small'),
-                html.Td(row.get('Project Year', 'N/A'), className='small'),
-                html.Td(row.get('Project Status', 'N/A'), className='small')
-            ]))
-
-        table_body = [html.Tbody(table_rows)]
+            table_rows.append(
+                dmc.TableTr([
+                    dmc.TableTd(row.get('Project Title', 'N/A')),
+                    dmc.TableTd(row.get('Lead Agency', 'N/A')),
+                    dmc.TableTd(row.get('Project Year', 'N/A')),
+                    dmc.TableTd(row.get('Project Status', 'N/A'))
+                ])
+            )
 
         return [
-            html.H6("Projects", className='fw-bold mt-3'),
-            dbc.Table(
-                table_header + table_body,
-                bordered=True,
-                hover=True,
-                responsive=True,
-                size='sm',
-                className='mb-3'
-            )
+            dmc.Title("Projects", order=6, fw=700, mt='md'),
+            dmc.Table([
+                dmc.TableThead(
+                    dmc.TableTr([
+                        dmc.TableTh("Project Title"),
+                        dmc.TableTh("Agency"),
+                        dmc.TableTh("Year"),
+                        dmc.TableTh("Status")
+                    ])
+                ),
+                dmc.TableTbody(table_rows)
+            ], striped=True, highlightOnHover=True, withTableBorder=True, mb='md')
         ]

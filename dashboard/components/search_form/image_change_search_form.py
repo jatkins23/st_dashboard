@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ChangeSearchForm(BaseSearchForm):
+class ImageChangeSearchForm(BaseSearchForm):
     """Form for ImageToImage change search.
 
     This form provides:
@@ -36,6 +36,10 @@ class ChangeSearchForm(BaseSearchForm):
             id_prefix='change-search-form',
             title='Image-to-Image Change Search'
         )
+
+    def _input_selector(self):
+        """Return street selector for image-based search."""
+        return self._street_selector()
 
     def _query_inputs(self) -> list:
         """Year-from, year-to, and sequential checkbox inputs."""

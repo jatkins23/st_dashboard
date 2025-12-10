@@ -1,5 +1,5 @@
 from dash import html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 from ..base import BaseComponent
 from dash.development.base_component import Component as DashComponent
 
@@ -19,14 +19,17 @@ class ResultsPanel(BaseComponent):
         from dash import Input, Output, State, html
 
         @app.callback(
-            Output('results-collapse', 'is_open'),
+            Output('results-collapse', 'opened'),
             Output('results-collapse-btn', 'children'),
             Input('results-collapse-btn', 'n_clicks'),
-            State('results-collapse', 'is_open'),
+            State('results-collapse', 'opened'),
             prevent_initial_call=True
         )
         def toggle_results_panel(n_clicks, is_open):
-            """Toggle results panel collapse."""
+            """Toggle results panel collapse.
+
+            Note: dmc.Collapse uses 'opened' prop in version 2.4.0.
+            """
             new_state = not is_open
             icon = html.I(className='fas fa-chevron-up' if new_state else 'fas fa-chevron-down')
             return new_state, icon
@@ -37,17 +40,16 @@ class ResultsPanel(BaseComponent):
         if self.results is None:
             return []
         elif len(self.results) == 0:
-            return [html.Div("No results found.", className='text-muted fst-italic')]
+            return [dmc.Text("No results found.", size='sm', color='dimmed', italic=True)]
         else:
             accordion_items = [ResultsStateCard(i, i+1, res)() for i, res in enumerate(self.results)] # TODO: !! Convert this to a dispatcher somehow
-            accordion = dbc.Accordion(
+            accordion = dmc.Accordion(
                 accordion_items,
-                start_collapsed=True,
-                always_open=False,
-                flush=True
+                chevronPosition='right',
+                variant='separated'
             )
             return [
-                html.H6(f"Top {len(self.results)} similar locations:", className='text-success mb-3'),
+                dmc.Title(f"Top {len(self.results)} similar locations:", order=6, color='green', mb='md'),
                 accordion
             ]
 
@@ -58,25 +60,27 @@ class ResultsPanel(BaseComponent):
 
         # Return complete card structure with floating style
         return html.Div([
-            dbc.Card([
-                dbc.CardHeader([
-                    html.Div([
-                        html.Span("Search Results", className='fw-bold'),
-                        dbc.Button(
-                            html.I(className='fas fa-chevron-down'),
-                            id='results-collapse-btn',
-                            color='link', size='sm', className='ms-auto p-0'
-                        )
-                    ], className='d-flex align-items-center justify-content-between')
-                ]),
-                dbc.Collapse([
-                    dbc.CardBody(
+            dmc.Card([
+                # Header with collapse button
+                html.Div([
+                    dmc.Text("Search Results", fw=700, size='md'),
+                    dmc.ActionIcon(
+                        html.I(className='fas fa-chevron-down'),
+                        id='results-collapse-btn',
+                        variant='subtle',
+                        size='sm'
+                    )
+                ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'marginBottom': '0.5rem'}),
+                # Collapsible content
+                dmc.Collapse([
+                    html.Div(
                         content,
                         id='results-content',
                         style={'maxHeight': '100%', 'overflowY': 'auto'}
                     )
-                ], id='results-collapse', is_open=True)
-            ], id='results-card', style={'display': 'none' if self.results is None else 'block'})
+                ], id='results-collapse', opened=True)
+            ], id='results-card', withBorder=True, shadow='sm', p='md',
+               style={'display': 'none' if self.results is None else 'block'})
         ], style={
             'position': 'absolute',
             'top': '10px',

@@ -60,6 +60,16 @@ class BaseSearchForm(BaseComponent):
             }
         )
 
+    def _text_input(self) -> DashComponent:
+        """Text input for text-based search forms."""
+        return dbc.Input(
+            id=self.Id('text-input'),
+            type="text",
+            placeholder="Enter search text...",
+            debounce=True,
+            style={"color": "black"}
+        )
+
     def _limit_dropdown(self) -> DashComponent:
         """Result limit dropdown (common to all)."""
         return dcc.Dropdown(
@@ -164,6 +174,18 @@ class BaseSearchForm(BaseComponent):
     # ===== ABSTRACT: Subclass-specific inputs =====
 
     @abstractmethod
+    def _input_selector(self) -> DashComponent:
+        """Return the input component for this search form.
+
+        Image-based forms should return self._street_selector()
+        Text-based forms should return self._text_input()
+
+        Returns:
+            DashComponent: The input component (street selector or text input)
+        """
+        pass
+
+    @abstractmethod
     def _query_inputs(self) -> list:
         """Return list of dbc.Col elements for query-specific inputs.
 
@@ -187,11 +209,11 @@ class BaseSearchForm(BaseComponent):
     def layout(self) -> DashComponent:
         """Construct the full form layout.
 
-        Note: Each form has its own street selector with a unique ID.
+        Note: Each form has its own input selector with a unique ID.
         """
         search_components = [
-            # Street selector (unique per form)
-            dbc.Col([self._street_selector()], width=3),
+            # Input selector (street selector or text input - unique per form)
+            dbc.Col([self._input_selector()], width=3),
 
             # Query-specific inputs (year, text, etc.)
             *self._query_inputs(),

@@ -1,6 +1,6 @@
 from dash import html
 from dash.development.base_component import Component as DashComponent
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 from abc import abstractmethod
 from ..base import BaseComponent
 from streettransformer.query import QueryResultInstance
@@ -48,19 +48,28 @@ class BaseResultsCard(BaseComponent):
     
     @property
     def _location_details(self) -> DashComponent:
-        return html.Div([
-            html.Small([html.Strong("Location ID: "), str(self.location_id)], className='text-muted'),
-            html.Br(),
-            html.Small([html.Strong("Year: "), str(self.year)], className='text-muted') if self.year else None,
-        ], className='mb-2')
+        details = [
+            dmc.Text([
+                dmc.Text("Location ID: ", span=True, fw=700),
+                str(self.location_id)
+            ], size='sm', color='dimmed')
+        ]
+
+        if self.year:
+            details.append(dmc.Text([
+                dmc.Text("Year: ", span=True, fw=700),
+                str(self.year)
+            ], size='sm', color='dimmed'))
+
+        return html.Div(details, style={'marginBottom': '0.5rem'})
     
     @property
-    def layout(self) -> dbc.AccordionItem:
+    def layout(self) -> dmc.AccordionItem:
         # Create title with badge
         title = html.Div([
-            html.Span(f"#{self.rank} - {self.title}", className='me-2'),
-            dbc.Badge(f"{self.similarity:.4f}", color='info', pill=True)
-        ], className='d-flex align-items-center justify-content-between w-100')
+            html.Span(f"#{self.rank} - {self.title}", style={'marginRight': '0.5rem'}),
+            dmc.Badge(f"{self.similarity:.4f}", color='cyan', variant='filled')
+        ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'width': '100%'})
 
         # Create content
         content = []
@@ -70,11 +79,11 @@ class BaseResultsCard(BaseComponent):
 
         # Image/s
         content.extend(self._media_content)
-        
-        return dbc.AccordionItem(
-            content,
-            title=title,
-            item_id=self.Id('item')
+
+        return dmc.AccordionItem(
+            html.Div(content),
+            value=self.Id('item'),
+            children=title
         )
 
 

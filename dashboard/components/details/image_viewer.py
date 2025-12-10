@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from dash import html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 import pandas as pd
 from typing import Optional, Tuple, List
 
@@ -68,14 +68,28 @@ class DetailsImageViewer:
         if not carousel_items:
             return []
 
+        # Convert carousel items to dmc.Carousel format
+        carousel_slides = []
+        for item in carousel_items:
+            carousel_slides.append(
+                dmc.CarouselSlide(
+                    html.Div([
+                        dmc.Text(item['header'], fw=600, size='sm', mb='xs'),
+                        html.Img(
+                            src=item['src'],
+                            style={**{'width': '100%', 'height': 'auto'}, **item.get('img_style', {})}
+                        )
+                    ])
+                )
+            )
+
         return [
-            html.H6("Images:", className='mt-3 mb-2'),
-            dbc.Carousel(
-                items=carousel_items,
-                controls=True,
-                indicators=True,
-                interval=None,
-                className='mb-3',
-                active_index=query_year_index
+            dmc.Title("Images:", order=6, mt='md', mb='sm'),
+            dmc.Carousel(
+                carousel_slides,
+                withControls=True,
+                withIndicators=True,
+                initialSlide=query_year_index,
+                mb='md'
             )
         ]

@@ -1,6 +1,6 @@
 from pathlib import Path
 from dash import html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 from .results_card_base import BaseResultsCard
 from ...utils.display import encode_image_to_base64
 from streettransformer.query import StateResultInstance, ChangeResultInstance
@@ -19,11 +19,11 @@ class ResultsStateCard(BaseResultsCard):
         if self.image_path.exists():
             img_base64 = encode_image_to_base64(self.image_path)
             if img_base64:
-                return html.Img(src=img_base64, className='img-fluid rounded mt-2')
+                return dmc.Image(src=img_base64, radius='md', fit='contain', mt='sm')
             else:
-                return dbc.Alert("Image could not be loaded", color='warning', className='mt-2 small')
+                return dmc.Alert("Image could not be loaded", color='yellow', title="Warning", mt='sm')
         else:
-            return dbc.Alert("Image not found", color='warning', className='mt-2 small')
+            return dmc.Alert("Image not found", color='yellow', title="Warning", mt='sm')
         
         
 
@@ -37,16 +37,16 @@ class ResultsChangeCard(BaseResultsCard):
     
     @property
     def _media_content(self):
-        if self.before_path.exists() and self.after_path.exists(0):
-            before_base64 = encode_image_to_base64(self.image_path)
-            after_base64  = encode_image_to_base64(self.image_path)
+        if self.before_path.exists() and self.after_path.exists():
+            before_base64 = encode_image_to_base64(self.before_path)
+            after_base64  = encode_image_to_base64(self.after_path)
             if before_base64 and after_base64:
-                return html.Span([
-                    html.Img(src=before_base64, className='img-fluid rounded mt-2'),
+                return html.Div([
+                    dmc.Image(src=before_base64, radius='md', fit='contain', mt='sm'),
                     # TODO: Arrow?
-                    html.Img(src=after_base64, className='img-fluid rounded mt-2')
+                    dmc.Image(src=after_base64, radius='md', fit='contain', mt='sm')
                 ])
             else:
-                return dbc.Alert("Images could not be loaded", color='warning', className='mt-2 small')
+                return dmc.Alert("Images could not be loaded", color='yellow', title="Warning", mt='sm')
         else:
-            return dbc.Alert("Images not found", color='warning', className='mt-2 small')
+            return dmc.Alert("Images not found", color='yellow', title="Warning", mt='sm')

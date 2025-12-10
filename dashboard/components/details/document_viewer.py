@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from dash import html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 import pandas as pd
 from typing import Optional, List
 import logging
@@ -84,25 +84,37 @@ class DetailsDocumentViewer:
         """
         if self.documents_df is None or self.documents_df.empty:
             return [
-                html.H6("Documents", className='fw-bold mt-3'),
-                html.Div("No documents found", className='text-muted fst-italic text-center p-3')
+                dmc.Title("Documents", order=6, fw=700, mt='md'),
+                dmc.Text("No documents found", size='sm', color='dimmed', italic=True, ta='center', p='md')
             ]
 
         carousel_items = self._format_carousel_items()
 
         if not carousel_items:
             return [
-                html.H6("Documents", className='fw-bold mt-3'),
-                html.Div("No document pages available", className='text-muted fst-italic text-center p-3')
+                dmc.Title("Documents", order=6, fw=700, mt='md'),
+                dmc.Text("No document pages available", size='sm', color='dimmed', italic=True, ta='center', p='md')
             ]
 
+        # Convert carousel items to dmc.Carousel format
+        carousel_slides = []
+        for item in carousel_items:
+            carousel_slides.append(
+                dmc.CarouselSlide(
+                    html.Div([
+                        dmc.Text(item['header'], fw=600, size='sm', mb='xs'),
+                        html.Img(src=item['src'], style={'width': '100%', 'height': 'auto'}),
+                        dmc.Text(item['caption'], size='xs', color='dimmed', mt='xs')
+                    ])
+                )
+            )
+
         return [
-            html.H6("Documents:", className='fw-bold mt-3'),
-            dbc.Carousel(
-                items=carousel_items,
-                controls=True,
-                indicators=True,
-                interval=None,
-                className='mb-3'
+            dmc.Title("Documents:", order=6, fw=700, mt='md'),
+            dmc.Carousel(
+                carousel_slides,
+                withControls=True,
+                withIndicators=True,
+                mb='md'
             )
         ]
