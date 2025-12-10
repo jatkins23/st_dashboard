@@ -147,7 +147,7 @@ class SearchForm(BaseComponent):
             id=id,
             options=options,
             placeholder='Select year',
-            style={"dropdown": {"color": "black", "zIndex": 9999}}
+            style={"color": "black", "zIndex": 9999}
         )
         
     def _media_selector(self, id='media-type-selector') -> DashComponent:
@@ -161,7 +161,7 @@ class SearchForm(BaseComponent):
             ],
             value='image',
             clearable=False,
-            style={"dropdown": {"color": "black", "zIndex": 9999}}
+            style={"color": "black", "zIndex": 9999}
             
         )
         
@@ -231,7 +231,7 @@ class SearchForm(BaseComponent):
             ], width=2),
 
             # Options Checkboxes
-            dbc.Col([self._method_selector(options=['faiss','whitening'])], width=2),
+            dbc.Col(self._method_selector(options=['faiss','whitening']), width=2),
 
             # Search Button
             dbc.Col([
