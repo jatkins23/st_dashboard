@@ -320,7 +320,8 @@ class Dashboard(BaseComponent):
                         # Style top-level tabs to be larger and more prominent
                         style={
                             'marginBottom': '15px',
-                            'borderBottom': '2px solid #dee2e6'
+                            'borderBottom': '2px solid #dee2e6',
+                            'gap': '8px'
                         }
                     ),
                     *top_tab_panels
@@ -328,8 +329,30 @@ class Dashboard(BaseComponent):
                 id='search-tabs',
                 value=default_tab,
                 orientation='horizontal',
-                variant='default',  # Use default style for top-level tabs (vs pills for nested)
+                variant='pills',  # Use pills for more obvious selection
                 color='blue',
+                radius='md',
+                styles={
+                    'tab': {
+                        'fontSize': '16px',
+                        'fontWeight': 600,
+                        'padding': '12px 24px',
+                        'height': '48px',
+                        '&[data-active]': {
+                            'backgroundColor': '#1971c2',
+                            'color': 'white',
+                            'boxShadow': '0 2px 8px rgba(25, 113, 194, 0.5)'
+                        },
+                        '&:not([data-active])': {
+                            'backgroundColor': '#2c2e33',
+                            'color': '#909296'
+                        },
+                        '&:hover:not([data-active])': {
+                            'backgroundColor': '#373A40',
+                            'color': '#c1c2c5'
+                        }
+                    }
+                },
                 className='mb-3'
             ),
 

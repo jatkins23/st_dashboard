@@ -41,31 +41,8 @@ class TextChangeSearchForm(BaseSearchForm):
         return self._text_input()
 
     def _query_inputs(self) -> list:
-        """Year-from, year-to, and sequential checkbox inputs."""
-        return [
-            # From year
-            dmc.GridCol(
-                self._year_selector('year-from-selector', 'From Year'),
-                span=2
-            ),
-
-            # To year
-            dmc.GridCol(
-                self._year_selector('year-to-selector', 'To Year'),
-                span=2
-            ),
-
-            # Sequential checkbox
-            dmc.GridCol(
-                dmc.Switch(
-                    id=self.Id('sequential-checkbox'),
-                    label='Sequential',
-                    checked=False,
-                    size="sm"
-                ),
-                span=1
-            ),
-        ]
+        """No year inputs for text change search."""
+        return []
 
     def execute_search(self, state, text, year_from, year_to, limit, media_type, sequential, **kwargs):
         """Execute change text search (text-to-image temporal change detection).

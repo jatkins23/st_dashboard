@@ -2,6 +2,7 @@
 # Dashboard
 ## Bugs
 [ ] The search functionality kinda breaks after it is called once
+[X] Documents actually ashow up
 
 ## Features/Functionality
 [ ] !! 4 types of search
@@ -9,7 +10,7 @@
 [ ] Collapse Panels
 [ ] Click on locations
 - Text Search
-    [ ] Years not needed
+    [X] Years not needed
     [ ] !! Implement CLIP
 [ ] Need search to actually show up with the location
 
@@ -33,14 +34,14 @@
 
 # Preprocessing
 [X] hash-based Unique ID
-[ ] Repull everything
+[ ] Re-pull everything
     [X] Images
     [-] Segmentation
     [ ] Split
     [ ] Re-add to `location_year_files`? Turn this into a view?
 [ ] Rebuild the views
 [ ] Change to `core2.ddb` from `core.ddb`
-[ ] Need to convert documents to images?
+[X] Need to convert documxents to images? No, we don't!
 [ ] **All paths need to exclude ~** 
 
 

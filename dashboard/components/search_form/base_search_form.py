@@ -217,7 +217,7 @@ class BaseSearchForm(BaseComponent):
         # Build the search form using DMC Grid
         search_components = [
             # Input selector (street selector or text input - unique per form)
-            dmc.GridCol(self._input_selector(), span=3),
+            dmc.GridCol(self._input_selector(), span=5),
 
             # Query-specific inputs (year, text, etc.)
             *self._query_inputs(),

@@ -39,14 +39,8 @@ class TextStateSearchForm(BaseSearchForm):
         return self._text_input()
 
     def _query_inputs(self) -> list:
-        """Year and optional target year inputs."""
+        """Target year input only (no base year for text search)."""
         return [
-            # Year selector
-            dmc.GridCol(
-                self._year_selector('year-selector', 'Year'),
-                span=2
-            ),
-
             # Target year (optional)
             dmc.GridCol(
                 self._year_selector('target-year-selector', 'Target Year (optional)'),
