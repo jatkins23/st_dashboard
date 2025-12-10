@@ -373,8 +373,15 @@ class Dashboard(BaseComponent):
                 components,
                 theme={
                     "colorScheme": "dark",
-                    "primaryColor": "blue"
-                }
+                    "primaryColor": "blue",
+                    "defaultRadius": "md",
+                    "focusRing": "auto",
+                    "components": {
+                        "Button": {"defaultProps": {"variant": "filled"}},
+                        "Paper": {"defaultProps": {"shadow": "sm"}},
+                    }
+                },
+                forceColorScheme="dark"  # Force dark mode
             ),
             fluid=True
         )

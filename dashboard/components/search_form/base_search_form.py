@@ -55,8 +55,7 @@ class BaseSearchForm(BaseComponent):
             limit=10,
             value=[],
             styles={
-                "input": {"color": "black"},
-                "dropdown": {"color": "black", "zIndex": 9999}
+                "dropdown": {"zIndex": 9999}
             }
         )
 
