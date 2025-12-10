@@ -8,7 +8,8 @@ from dash.development.base_component import Component as DashComponent
 from .base import BaseComponent
 from .results.results_panel import ResultsPanel
 from .details.details_panel import DetailsPanel
-from .search_form import SearchForm
+from .search_form.state_search_form import StateSearchForm
+from .search_form.change_search_form import ChangeSearchForm
 from .map_component import Map
 
 import logging
@@ -42,11 +43,17 @@ class Dashboard(BaseComponent):
         self.available_years = available_years
         self.all_streets = all_streets
 
-        # Create component instances
-        self.search_form = SearchForm(
+        # Create search form instances for each tab
+        self.state_search_form = StateSearchForm(
             available_years=available_years,
             all_streets=all_streets
         )
+        self.change_search_form = ChangeSearchForm(
+            available_years=available_years,
+            all_streets=all_streets
+        )
+
+        # Shared components (used by all tabs)
         self.map_component = Map()
         self.results_panel = ResultsPanel()
         self.details_panel = DetailsPanel()
@@ -56,41 +63,51 @@ class Dashboard(BaseComponent):
         """Register all component callbacks.
 
         This method registers callbacks for all child components plus
-        the main search callback that coordinates between them.
+        the search callbacks for each tab type.
         """
         from dash import Input, Output, State
         import dash_bootstrap_components as dbc
 
         # Register child component callbacks
-        self.search_form.register_callbacks(app)
+        self.state_search_form.register_callbacks(app)
+        self.change_search_form.register_callbacks(app)
         self.map_component.register_callbacks(app)
         self.results_panel.register_callbacks(app)
         self.details_panel.register_callbacks(app)
 
-        # Register search callback (coordinates selected-location-id → ResultsPanel)
+        # Track active tab and clear street selectors when switching
+        @app.callback(
+            Output('active-search-tab', 'data'),
+            Output('state-search-form--street-selector', 'value'),
+            Output('change-search-form--street-selector', 'value'),
+            Input('search-tabs', 'value')
+        )
+        def track_active_tab(tab_value):
+            """Track which search tab is currently active and clear street selectors."""
+            return tab_value, [], []
+
+        # Register STATE search callback
         @app.callback(
             Output('results-content', 'children'),
             Output('results-card', 'style'),
-            Output('result-locations', 'data'),
-            Output('query-year', 'data'),
-            Input('search-btn', 'n_clicks'),
+            Output('state-result-locations', 'data'),
+            Output('state-query-params', 'data'),
+            Input('state-search-form--search-btn', 'n_clicks'),
             State('selected-location-id', 'data'),
-            State('year-selector', 'value'),
-            State('target-year-selector', 'value'),
-            State('limit-dropdown', 'value'),
-            State('media-type-selector', 'value'),
-            State('use-faiss-checkbox', 'value'),
-            State('use-whitening-checkbox', 'value'),
+            State('state-search-form--year-selector', 'value'),
+            State('state-search-form--target-year-selector', 'value'),
+            State('state-search-form--limit-dropdown', 'value'),
+            State('state-search-form--media-type-selector', 'value'),
+            State('active-search-tab', 'data'),
             prevent_initial_call=True
         )
-        def handle_search(n_clicks, location_id, year, target_year, limit, media_type, use_faiss, use_whitening):
-            """Handle state search.
+        def handle_state_search(n_clicks, location_id, year, target_year, limit, media_type, active_tab):
+            """Handle state search (image-to-image by year)."""
+            from .. import state as app_state
 
-            Reads the selected location from selected-location-id state, which is set by
-            the DetailsPanel when user selects streets or clicks the map.
-            """
-            from .search import execute_image_search
-            from .. import state
+            # Only process if state tab is active
+            if active_tab != 'state':
+                return dbc.Alert("Please switch to State Search tab", color='warning'), {'display': 'block'}, [], None
 
             if not location_id or not year:
                 return (
@@ -101,14 +118,21 @@ class Dashboard(BaseComponent):
                 )
 
             try:
-                results_set = execute_image_search(location_id, year, target_year, limit, media_type, state)
+                results_set = self.state_search_form.execute_search(
+                    state=app_state,
+                    location_id=location_id,
+                    year=year,
+                    target_year=target_year,
+                    limit=limit,
+                    media_type=media_type
+                )
 
                 if len(results_set) == 0:
                     return (
                         dbc.Alert(f"No results found", color='info'),
                         {'display': 'block'},
                         [],
-                        year
+                        {'year': year}
                     )
 
                 # Create results panel from results set
@@ -119,11 +143,85 @@ class Dashboard(BaseComponent):
                     results_panel.content,
                     {'display': 'block'},
                     result_location_ids,
-                    year
+                    {'year': year, 'target_year': target_year}
                 )
 
             except Exception as e:
-                logger.error(f"Search error: {e}", exc_info=True)
+                logger.error(f"State search error: {e}", exc_info=True)
+                return (
+                    dbc.Alert(f"Error: {str(e)}", color='danger'),
+                    {'display': 'block'},
+                    [],
+                    None
+                )
+
+        # Register CHANGE search callback
+        @app.callback(
+            Output('results-content', 'children', allow_duplicate=True),
+            Output('results-card', 'style', allow_duplicate=True),
+            Output('change-result-locations', 'data'),
+            Output('change-query-params', 'data'),
+            Input('change-search-form--search-btn', 'n_clicks'),
+            State('selected-location-id', 'data'),
+            State('change-search-form--year-from-selector', 'value'),
+            State('change-search-form--year-to-selector', 'value'),
+            State('change-search-form--limit-dropdown', 'value'),
+            State('change-search-form--media-type-selector', 'value'),
+            State('change-search-form--sequential-checkbox', 'value'),
+            State('active-search-tab', 'data'),
+            prevent_initial_call=True
+        )
+        def handle_change_search(n_clicks, location_id, year_from, year_to, limit, media_type, sequential_value, active_tab):
+            """Handle change search (temporal change detection)."""
+            from .. import state as app_state
+
+            # Only process if change tab is active
+            if active_tab != 'change':
+                return dbc.Alert("Please switch to Change Search tab", color='warning'), {'display': 'block'}, [], None
+
+            if not location_id or not year_from or not year_to:
+                return (
+                    dbc.Alert("Please select a location, from year, and to year", color='warning'),
+                    {'display': 'block'},
+                    [],
+                    None
+                )
+
+            # Convert sequential checkbox value to boolean
+            sequential = 'sequential' in (sequential_value or [])
+
+            try:
+                results_set = self.change_search_form.execute_search(
+                    state=app_state,
+                    location_id=location_id,
+                    year_from=year_from,
+                    year_to=year_to,
+                    limit=limit,
+                    media_type=media_type,
+                    sequential=sequential
+                )
+
+                if len(results_set) == 0:
+                    return (
+                        dbc.Alert(f"No results found", color='info'),
+                        {'display': 'block'},
+                        [],
+                        {'year_from': year_from, 'year_to': year_to}
+                    )
+
+                # Create results panel from results set
+                results_panel = ResultsPanel(id_prefix='results', results=results_set)
+                result_location_ids = [r.location_id for r in results_set]
+
+                return (
+                    results_panel.content,
+                    {'display': 'block'},
+                    result_location_ids,
+                    {'year_from': year_from, 'year_to': year_to, 'sequential': sequential}
+                )
+
+            except Exception as e:
+                logger.error(f"Change search error: {e}", exc_info=True)
                 return (
                     dbc.Alert(f"Error: {str(e)}", color='danger'),
                     {'display': 'block'},
@@ -144,20 +242,40 @@ class Dashboard(BaseComponent):
 
     @property
     def layout(self) -> DashComponent:
-        """Return the complete dashboard layout."""
+        """Return the complete dashboard layout with tabs."""
 
         components = [
             # Header
             self._header(),
 
-            # Search card
-            dbc.Row([
-                dbc.Col([
-                    self.search_form.layout
-                ])
-            ]),
+            # Tabs with different search forms
+            dcc.Tabs(
+                id='search-tabs',
+                value='state',  # Default to state search tab
+                children=[
+                    dcc.Tab(
+                        label='State Search',
+                        value='state',
+                        children=[
+                            html.Div([
+                                self.state_search_form.layout
+                            ], style={'marginTop': '10px'})
+                        ]
+                    ),
+                    dcc.Tab(
+                        label='Change Search',
+                        value='change',
+                        children=[
+                            html.Div([
+                                self.change_search_form.layout
+                            ], style={'marginTop': '10px'})
+                        ]
+                    ),
+                ],
+                className='mb-3'
+            ),
 
-            # Map with floating panels
+            # Map with floating panels (shared across all tabs)
             dbc.Row([
                 dbc.Col([
                     html.Div([
@@ -172,9 +290,16 @@ class Dashboard(BaseComponent):
             ], className='mb-3'),
 
             # Data stores
-            dcc.Store(id='selected-location-id'),
-            dcc.Store(id='query-year'),
-            dcc.Store(id='result-locations'),
+            dcc.Store(id='active-search-tab'),  # Track which tab is active
+            dcc.Store(id='selected-location-id'),  # Shared across tabs
+
+            # State search stores
+            dcc.Store(id='state-result-locations'),
+            dcc.Store(id='state-query-params'),
+
+            # Change search stores
+            dcc.Store(id='change-result-locations'),
+            dcc.Store(id='change-query-params'),
         ]
 
         return dbc.Container(dmc.MantineProvider(components), fluid=True)

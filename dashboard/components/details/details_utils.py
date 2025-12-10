@@ -5,50 +5,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_location_from_streets(selected_streets, state):
-    """Get location_id from selected street names.
-
-    Args:
-        selected_streets: List of selected street names
-        state: Application state module
-
-    Returns:
-        location_id if found, None otherwise
-    """
-    from streettransformer.db.database import get_connection
-
-    if not selected_streets or len(selected_streets) == 0:
-        return None
-
-    try:
-        with get_connection(state.CONFIG.database_path, read_only=True) as con:
-            # Find locations that match ALL selected streets
-            street_conditions = []
-            for street in selected_streets:
-                street_conditions.append(f"""
-                    (street1 = '{street}'
-                     OR street2 = '{street}'
-                     OR list_contains(additional_streets, '{street}'))
-                """)
-
-            where_clause = " AND ".join(street_conditions)
-
-            query = f"""
-                SELECT location_id
-                FROM {state.CONFIG.universe_name}.locations
-                WHERE {where_clause}
-                LIMIT 1
-            """
-            result = con.execute(query).df()
-
-            if not result.empty:
-                return result.iloc[0]['location_id']
-    except Exception as e:
-        logger.error(f"Error finding location by streets: {e}", exc_info=True)
-
-    return None
-
-
 def get_location_details(location_id, query_year, state):
     """Get and format location details for display.
 

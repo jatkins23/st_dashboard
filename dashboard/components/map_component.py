@@ -46,22 +46,33 @@ class Map(BaseComponent):
         """Register map update callback.
 
         Updates the map display when:
-        - A query location is selected
+        - A query location is selected (shared across tabs)
         - Search results are returned
+        - Active tab changes
+
+        The map shows the shared selected location and tab-specific results.
         """
 
         @app.callback(
             Output('main-map', 'figure'),
+            Input('active-search-tab', 'data'),
             Input('selected-location-id', 'data'),
-            Input('result-locations', 'data'),
+            Input('state-result-locations', 'data'),
+            Input('change-result-locations', 'data'),
             prevent_initial_call=False
         )
-        def update_map(query_location_id, result_location_ids):
-            """Update map with selected location and results."""
+        def update_map(active_tab, selected_location_id, state_results, change_results):
+            """Update map with selected location and results from active tab."""
+            # Use results from the active tab
+            if active_tab == 'change':
+                result_location_ids = change_results or []
+            else:  # Default to state tab
+                result_location_ids = state_results or []
+
             fig = create_location_map(
                 projects_df=state.PROJECTS_DF,
-                selected_location_id=query_location_id,
-                result_location_ids=result_location_ids or [],
+                selected_location_id=selected_location_id,
+                result_location_ids=result_location_ids,
                 center_lat=self.center_lat,
                 center_lon=self.center_lon,
                 zoom=self.zoom

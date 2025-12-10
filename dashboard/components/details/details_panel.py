@@ -21,7 +21,7 @@ class DetailsPanel(BaseComponent):
     def register_callbacks(self, app):
         """Register callbacks for the panel."""
         from dash import Input, Output, State, html
-        from .details_utils import get_location_from_streets, get_location_details
+        from .details_utils import get_location_details
         from ... import state
 
         # Panel collapse toggle callback
@@ -38,36 +38,46 @@ class DetailsPanel(BaseComponent):
             icon = html.I(className='fas fa-chevron-up' if new_state else 'fas fa-chevron-down')
             return new_state, icon
 
-        # Details update callback (coordinates StreetSelector + Map → DetailsPanel)
+        # Unified details update callback (works for all tabs)
         @app.callback(
             Output('details-content', 'children'),
             Output('details-card', 'style'),
-            Output('selected-location-id', 'data'),
-            Input('street-selector', 'value'),
+            Input('selected-location-id', 'data'),
             Input('main-map', 'clickData'),
-            Input('query-year', 'data'),
+            Input('active-search-tab', 'data'),
+            Input('state-query-params', 'data'),
+            Input('change-query-params', 'data'),
             prevent_initial_call=False
         )
-        def update_details(selected_streets, click_data, query_year):
-            """Update details panel when location is selected."""
+        def update_details(selected_location_id, click_data, active_tab, state_params, change_params):
+            """Update details panel when location is selected.
+
+            Location can be selected by:
+            - Street selector (updates selected-location-id via search form callback)
+            - Map click (takes priority)
+            """
             location_id = None
 
-            # Handle map click first (takes priority)
+            # Map click takes priority
             if click_data and 'points' in click_data and len(click_data['points']) > 0:
                 point = click_data['points'][0]
                 if 'customdata' in point:
                     location_id = point['customdata']
-
-            # If no map click, handle street selection
-            elif selected_streets and len(selected_streets) > 0:
-                location_id = get_location_from_streets(selected_streets, state)
+            # Otherwise use the selected location from street selector
+            elif selected_location_id:
+                location_id = selected_location_id
 
             if not location_id:
                 return (
                     html.Div("Select streets or click on the map", className='text-muted fst-italic'),
-                    {'display': 'none'},
-                    None
+                    {'display': 'none'}
                 )
+
+            # Get query year based on active tab
+            if active_tab == 'change':
+                query_year = change_params.get('year_from') if change_params else None
+            else:  # state tab
+                query_year = state_params.get('year') if state_params else None
 
             # Get location details
             details_content, location_info = get_location_details(location_id, query_year, state)
@@ -75,14 +85,12 @@ class DetailsPanel(BaseComponent):
             if details_content is None:
                 return (
                     dbc.Alert(f"Location {location_id} not found", color='warning'),
-                    {'display': 'block'},
-                    location_id
+                    {'display': 'block'}
                 )
 
             return (
                 html.Div(details_content),
-                {'display': 'block'},
-                location_info
+                {'display': 'block'}
             )            
     
     @property
