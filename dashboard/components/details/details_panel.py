@@ -87,7 +87,7 @@ class DetailsPanel(BaseComponent):
 
             if details_content is None:
                 return (
-                    dmc.Alert(f"Location {location_id} not found", color='warning'),
+                    dmc.Alert(f"Location {location_id} not found", c='warning'),
                     {'display': 'block'}
                 )
 

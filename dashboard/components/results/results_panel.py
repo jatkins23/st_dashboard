@@ -40,7 +40,7 @@ class ResultsPanel(BaseComponent):
         if self.results is None:
             return []
         elif len(self.results) == 0:
-            return [dmc.Text("No results found.", size='sm', color='dimmed', italic=True)]
+            return [dmc.Text("No results found.", size='sm', c='dimmed', italic=True)]
         else:
             accordion_items = [ResultsStateCard(i, i+1, res)() for i, res in enumerate(self.results)] # TODO: !! Convert this to a dispatcher somehow
             accordion = dmc.Accordion(
@@ -49,7 +49,7 @@ class ResultsPanel(BaseComponent):
                 variant='separated'
             )
             return [
-                dmc.Title(f"Top {len(self.results)} similar locations:", order=6, color='green', mb='md'),
+                dmc.Title(f"Top {len(self.results)} similar locations:", order=6, c='green', mb='md'),
                 accordion
             ]
 

@@ -1,7 +1,7 @@
 """State text search form for text-to-image state search (year-based)."""
 
 from dash import Input, Output, State
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
 from ... import state
@@ -42,14 +42,16 @@ class TextStateSearchForm(BaseSearchForm):
         """Year and optional target year inputs."""
         return [
             # Year selector
-            dbc.Col([
-                *self._year_selector('year-selector', 'Year')
-            ], width=2),
+            dmc.GridCol(
+                self._year_selector('year-selector', 'Year'),
+                span=2
+            ),
 
             # Target year (optional)
-            dbc.Col([
-                *self._year_selector('target-year-selector', 'Target Year (optional)')
-            ], width=2),
+            dmc.GridCol(
+                self._year_selector('target-year-selector', 'Target Year (optional)'),
+                span=2
+            ),
         ]
 
     def execute_search(self, state, text, year, target_year, limit, media_type, **kwargs):

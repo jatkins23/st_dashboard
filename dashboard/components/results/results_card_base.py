@@ -52,14 +52,14 @@ class BaseResultsCard(BaseComponent):
             dmc.Text([
                 dmc.Text("Location ID: ", span=True, fw=700),
                 str(self.location_id)
-            ], size='sm', color='dimmed')
+            ], size='sm', c='dimmed')
         ]
 
         if self.year:
             details.append(dmc.Text([
                 dmc.Text("Year: ", span=True, fw=700),
                 str(self.year)
-            ], size='sm', color='dimmed'))
+            ], size='sm', c='dimmed'))
 
         return html.Div(details, style={'marginBottom': '0.5rem'})
     
@@ -68,7 +68,7 @@ class BaseResultsCard(BaseComponent):
         # Create title with badge
         title = html.Div([
             html.Span(f"#{self.rank} - {self.title}", style={'marginRight': '0.5rem'}),
-            dmc.Badge(f"{self.similarity:.4f}", color='cyan', variant='filled')
+            dmc.Badge(f"{self.similarity:.4f}", c='cyan', variant='filled')
         ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'width': '100%'})
 
         # Create content

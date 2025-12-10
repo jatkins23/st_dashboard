@@ -22,7 +22,7 @@ class DetailsProjectViewer:
         if not self.location_id or state.PROJECTS_DF is None or state.PROJECTS_DF.empty:
             return [
                 dmc.Title("Projects", order=6, fw=700, mt='md'),
-                dmc.Text("No projects found", size='sm', color='dimmed', italic=True, ta='center', p='md')
+                dmc.Text("No projects found", size='sm', c='dimmed', ta='center', p='md')
             ]
 
         # Filter projects for this location
@@ -31,7 +31,7 @@ class DetailsProjectViewer:
         if location_projects.empty:
             return [
                 dmc.Title("Projects", order=6, fw=700, mt='md'),
-                dmc.Text("No projects at this location", size='sm', color='dimmed', italic=True, ta='center', p='md')
+                dmc.Text("No projects at this location", size='sm', c='dimmed', ta='center', p='md')
             ]
 
         # Create table rows

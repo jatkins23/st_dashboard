@@ -1,5 +1,8 @@
 
 # Dashboard
+## Bugs
+[ ] The search functionality kinda breaks after it is called once
+
 ## Features/Functionality
 [ ] !! 4 types of search
 [X] Street names
@@ -8,6 +11,7 @@
 - Text Search
     [ ] Years not needed
     [ ] !! Implement CLIP
+[ ] Need search to actually show up with the location
 
 ## Design Choices
 [X] Objectify everything
@@ -25,6 +29,7 @@
 [ ] TODO: Maybe swap type and mode? Or find better names for them
 [ ] Rearrange the streets in some logical order besides alphabetical
 [X] Remove SearchCard header?
+[ ] Remove lazy imports
 
 # Preprocessing
 [X] hash-based Unique ID
@@ -36,7 +41,7 @@
 [ ] Rebuild the views
 [ ] Change to `core2.ddb` from `core.ddb`
 [ ] Need to convert documents to images?
-
+[ ] **All paths need to exclude ~** 
 
 
 Ok, I want to do that, I also want to move the registering of callbacks and all the functionality that is currently all in app.py into Dashboard.py. Additionally, I want to see if its possible to move the two files from callbacks into their specific classes. At least details.py could be within details right? Or we could separate the function from the callbacks itself

@@ -62,36 +62,35 @@ class BaseSearchForm(BaseComponent):
 
     def _text_input(self) -> DashComponent:
         """Text input for text-based search forms."""
-        return dbc.Input(
+        return dmc.TextInput(
             id=self.Id('text-input'),
-            type="text",
             placeholder="Enter search text...",
-            debounce=True,
-            style={"color": "black"}
+            label="Search Text",
+            size="sm"
         )
 
     def _limit_dropdown(self) -> DashComponent:
         """Result limit dropdown (common to all)."""
-        return dcc.Dropdown(
+        return dmc.Select(
             id=self.Id('limit-dropdown'),
-            options=[{'label': str(i), 'value': i} for i in [5, 10, 20, 50]],
-            value=10,
+            data=[{'label': str(i), 'value': str(i)} for i in [5, 10, 20, 50]],
+            value='10',
             clearable=False,
-            style={"color": "black"}
+            size="sm"
         )
 
     def _media_selector(self) -> DashComponent:
         """Media type dropdown (common to all)."""
-        return dcc.Dropdown(
+        return dmc.Select(
             id=self.Id('media-type-selector'),
-            options=[
+            data=[
                 {'label': 'Images', 'value': 'image'},
                 {'label': 'Masks', 'value': 'mask'},
                 {'label': 'Side-by-side', 'value': 'sidebyside'}
             ],
             value='image',
             clearable=False,
-            style={"color": "black", "zIndex": 9999}
+            size="sm"
         )
 
     def _method_selector(self, options: list = None) -> list:
@@ -107,24 +106,24 @@ class BaseSearchForm(BaseComponent):
         if not options:
             return []
 
-        components = [dbc.Label("Options", size='sm')]
+        components = []
 
         if 'faiss' in options:
             components.append(
-                dbc.Checklist(
+                dmc.Switch(
                     id=self.Id('use-faiss-checkbox'),
-                    options=[{'label': ' FAISS', 'value': 'faiss'}],
-                    value=['faiss'],
-                    switch=True
+                    label='FAISS',
+                    checked=True,
+                    size="sm"
                 )
             )
         if 'whitening' in options:
             components.append(
-                dbc.Checklist(
+                dmc.Switch(
                     id=self.Id('use-whitening-checkbox'),
-                    options=[{'label': ' Whitening', 'value': 'whitening'}],
-                    value=[],
-                    switch=True
+                    label='Whitening',
+                    checked=False,
+                    size="sm"
                 )
             )
 
@@ -132,11 +131,13 @@ class BaseSearchForm(BaseComponent):
 
     def _search_button(self) -> DashComponent:
         """Search button (common to all)."""
-        return dbc.Button(
+        return dmc.Button(
             'Search',
             id=self.Id('search-btn'),
-            color='primary',
-            className='mt-4'
+            color='blue',
+            variant='filled',
+            size='sm',
+            style={'marginTop': '16px'}
         )
 
     # ===== HELPER: Year selector (used by subclasses) =====
@@ -154,22 +155,25 @@ class BaseSearchForm(BaseComponent):
         Returns:
             Tuple of (label_component, dropdown_component) for easy layout
         """
-        options = [{'label': str(y), 'value': y} for y in self.available_years]
+        options = [{'label': str(y), 'value': str(y)} for y in self.available_years]
         if include_all:
-            options = [{'label': 'All', 'value': None}] + options
+            options = [{'label': 'All', 'value': 'all'}] + options
 
         if placeholder is None:
             placeholder = f'Select {label.lower()}'
 
-        label_component = dbc.Label(label, size='sm')
-        dropdown = dcc.Dropdown(
+        # DMC Select component includes label built-in
+        dropdown = dmc.Select(
             id=self.Id(id_suffix),
-            options=options,
+            label=label,
+            data=options,
             placeholder=placeholder,
-            style={"color": "black", "zIndex": 9999}
+            clearable=True,
+            searchable=True,
+            size="sm"
         )
 
-        return label_component, dropdown
+        return dropdown
 
     # ===== ABSTRACT: Subclass-specific inputs =====
 
@@ -207,42 +211,61 @@ class BaseSearchForm(BaseComponent):
 
     @property
     def layout(self) -> DashComponent:
-        """Construct the full form layout.
+        """Construct the full form layout using DMC components.
 
         Note: Each form has its own input selector with a unique ID.
         """
+        # Build the search form using DMC Grid
         search_components = [
             # Input selector (street selector or text input - unique per form)
-            dbc.Col([self._input_selector()], width=3),
+            dmc.GridCol(self._input_selector(), span=3),
 
             # Query-specific inputs (year, text, etc.)
             *self._query_inputs(),
 
-            # Limit dropdown
-            dbc.Col([
-                dbc.Label("Limit", size='sm'),
-                self._limit_dropdown()
-            ], width=1),
+            # Limit dropdown with label
+            dmc.GridCol(
+                dmc.Stack([
+                    dmc.Text("Limit", size="sm", fw=500),
+                    self._limit_dropdown()
+                ], gap="xs"),
+                span=1
+            ),
 
-            # Media type
-            dbc.Col([
-                dbc.Label("Media Type", size='sm'),
-                self._media_selector()
-            ], width=2),
+            # Media type with label
+            dmc.GridCol(
+                dmc.Stack([
+                    dmc.Text("Media Type", size="sm", fw=500),
+                    self._media_selector()
+                ], gap="xs"),
+                span=2
+            ),
 
-            # Options (FAISS/Whitening)
-            dbc.Col(self._method_selector(), width=2),
+            # Options (FAISS/Whitening switches)
+            dmc.GridCol(
+                dmc.Stack([
+                    dmc.Text("Options", size="sm", fw=500),
+                    *self._method_selector()
+                ], gap="xs"),
+                span=2
+            ),
 
             # Search button
-            dbc.Col([self._search_button()], width=1),
+            dmc.GridCol(self._search_button(), span=1),
         ]
 
-        return dbc.Card([
-            # dbc.CardHeader(self.title, className='fw-bold'),
-            dbc.CardBody([
-                dbc.Row(search_components, className='g-3', align='end')
-            ])
-        ])
+        return dmc.Paper([
+            dmc.Grid(
+                search_components,
+                gutter="md",
+                align="flex-end"
+            )
+        ],
+        shadow="sm",
+        p="md",
+        radius="md",
+        withBorder=True
+        )
 
     # ===== ABSTRACT METHODS =====
 

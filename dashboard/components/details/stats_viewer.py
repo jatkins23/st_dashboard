@@ -24,6 +24,6 @@ class DetailsStatsViewer:
 
         return [
             dmc.Title(f"Location {self.location_id}", order=6, fw=700),
-            dmc.Text(self.street_name, color='dimmed'),
+            dmc.Text(self.street_name, c='dimmed'),
             dmc.Divider(my='sm')
         ]

@@ -1,7 +1,7 @@
 """Change text search form for text-to-image change detection."""
 
 from dash import Input, Output, State
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
 from ... import state
@@ -44,25 +44,27 @@ class TextChangeSearchForm(BaseSearchForm):
         """Year-from, year-to, and sequential checkbox inputs."""
         return [
             # From year
-            dbc.Col([
-                *self._year_selector('year-from-selector', 'From Year')
-            ], width=2),
+            dmc.GridCol(
+                self._year_selector('year-from-selector', 'From Year'),
+                span=2
+            ),
 
             # To year
-            dbc.Col([
-                *self._year_selector('year-to-selector', 'To Year')
-            ], width=2),
+            dmc.GridCol(
+                self._year_selector('year-to-selector', 'To Year'),
+                span=2
+            ),
 
             # Sequential checkbox
-            dbc.Col([
-                dbc.Label("Sequential", size='sm'),
-                dbc.Checklist(
+            dmc.GridCol(
+                dmc.Switch(
                     id=self.Id('sequential-checkbox'),
-                    options=[{'label': ' Sequential', 'value': 'sequential'}],
-                    value=[],
-                    switch=True
-                )
-            ], width=1),
+                    label='Sequential',
+                    checked=False,
+                    size="sm"
+                ),
+                span=1
+            ),
         ]
 
     def execute_search(self, state, text, year_from, year_to, limit, media_type, sequential, **kwargs):

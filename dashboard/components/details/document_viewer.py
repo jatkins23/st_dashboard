@@ -55,14 +55,16 @@ class DetailsDocumentViewer:
             List of carousel items
         """
         carousel_items = []
-        DATA_PATH = Path(str(os.getenv('DATA_PATH')))
-        
+        # Expand ~ to actual home directory path
+        DATA_PATH = Path(str(os.getenv('DATA_PATH'))).expanduser()
+
         for idx, doc_row in enumerate(self.documents_df.itertuples()):
-            # Fix file path 
-            doc_path = DATA_PATH.parent / doc_row.page_file_path.replace('pages', 'nyc/pages')
-            print(doc_path)
+            # Construct the full file path and expand ~
+            doc_path = (DATA_PATH.parent / doc_row.page_file_path.replace('pages', 'nyc/pages')).expanduser()
+
+            logger.debug(f"Checking document: {doc_path}")
+
             if doc_path.exists():
-                print('exists')
                 # PDFs: convert first page (page_num=0) to image
                 img_base64 = encode_pdf_to_base64(doc_path, page_num=0)
                 if img_base64:
@@ -72,7 +74,13 @@ class DetailsDocumentViewer:
                         'header': f"Page {idx + 1}",
                         'caption': doc_path.name
                     })
+                    logger.info(f"Successfully added document page {idx + 1}")
+                else:
+                    logger.warning(f"Failed to encode PDF: {doc_path}")
+            else:
+                logger.warning(f"Document file does not exist: {doc_path}")
 
+        logger.info(f"Created {len(carousel_items)} carousel items from {len(self.documents_df)} documents")
         return carousel_items
 
     @property
@@ -85,7 +93,7 @@ class DetailsDocumentViewer:
         if self.documents_df is None or self.documents_df.empty:
             return [
                 dmc.Title("Documents", order=6, fw=700, mt='md'),
-                dmc.Text("No documents found", size='sm', color='dimmed', italic=True, ta='center', p='md')
+                dmc.Text("No documents found", size='sm', c='dimmed', ta='center', p='md')
             ]
 
         carousel_items = self._format_carousel_items()
@@ -93,7 +101,7 @@ class DetailsDocumentViewer:
         if not carousel_items:
             return [
                 dmc.Title("Documents", order=6, fw=700, mt='md'),
-                dmc.Text("No document pages available", size='sm', color='dimmed', italic=True, ta='center', p='md')
+                dmc.Text("No document pages available", size='sm', c='dimmed', ta='center', p='md')
             ]
 
         # Convert carousel items to dmc.Carousel format
@@ -104,7 +112,7 @@ class DetailsDocumentViewer:
                     html.Div([
                         dmc.Text(item['header'], fw=600, size='sm', mb='xs'),
                         html.Img(src=item['src'], style={'width': '100%', 'height': 'auto'}),
-                        dmc.Text(item['caption'], size='xs', color='dimmed', mt='xs')
+                        dmc.Text(item['caption'], size='xs', c='dimmed', mt='xs')
                     ])
                 )
             )

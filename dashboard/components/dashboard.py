@@ -176,7 +176,7 @@ class Dashboard(BaseComponent):
                 prevent_initial_call=True
             )
             def handle_image_state_search(n_clicks, location_id, year, target_year, limit, media_type, active_tab):
-                image_state_search(n_clicks, location_id, year, target_year, limit, media_type, active_tab)
+                self.image_state_search(n_clicks, location_id, year, target_year, limit, media_type, active_tab)
 
         # Register IMAGE CHANGE search callback
         if self.enable_image_search:
@@ -196,7 +196,6 @@ class Dashboard(BaseComponent):
                 prevent_initial_call=True
             )
             def handle_image_change_search(n_clicks, location_id, year_from, year_to, limit, media_type, sequential_value, active_tab):
-                """Handle change search (temporal change detection)."""
                 self.image_change_search(n_clicks, location_id, year_from, year_to, limit, media_type, sequential_value, active_tab)
 
         # Register TEXT STATE search callback
@@ -314,23 +313,24 @@ class Dashboard(BaseComponent):
             self._header(),
 
             # Tabs with different search forms (DMC Tabs)
-            dmc.Tabs([
-                dmc.TabsList(
-                    top_tab_list,
-                    # Style top-level tabs to be larger and more prominent
-                    style={
-                        'marginBottom': '15px',
-                        'borderBottom': '2px solid #dee2e6'
-                    }
-                ),
-                *top_tab_panels
-            ],
-            id='search-tabs',
-            value=default_tab,
-            orientation='horizontal',
-            variant='default',  # Use default style for top-level tabs (vs pills for nested)
-            color='blue',
-            className='mb-3'
+            dmc.Tabs(
+                [
+                    dmc.TabsList(
+                        top_tab_list,
+                        # Style top-level tabs to be larger and more prominent
+                        style={
+                            'marginBottom': '15px',
+                            'borderBottom': '2px solid #dee2e6'
+                        }
+                    ),
+                    *top_tab_panels
+                ],
+                id='search-tabs',
+                value=default_tab,
+                orientation='horizontal',
+                variant='default',  # Use default style for top-level tabs (vs pills for nested)
+                color='blue',
+                className='mb-3'
             ),
 
             # Map with floating panels (shared across all tabs)
@@ -381,7 +381,7 @@ class Dashboard(BaseComponent):
 
 
     # ------- Search handlers  ------- #
-    def handle_image_state_search(self, n_clicks, location_id, year, target_year, limit, media_type, active_tab):
+    def image_state_search(self, n_clicks, location_id, year, target_year, limit, media_type, active_tab):
         from .. import state as app_state
         
         """Handle state search (image-to-image by year)."""
@@ -436,6 +436,7 @@ class Dashboard(BaseComponent):
             )
         
     def image_change_search(self, n_clicks, location_id, year_from, year_to, sequential_value, limit, media_type, active_tab):
+        """Handle change search (temporal change detection)."""
         from .. import state as app_state
         
         # Only process if change tab is active
