@@ -148,7 +148,7 @@ class ImageDataset:
             img_tensor = self.preprocess(img)
 
             metadata = {
-                'location_id': int(row['location_id']),
+                'location_id': row['location_id'],
                 'location_key': row['location_key'],
                 'year': int(row['year']),
                 'media_type': row['media_type'],
@@ -230,26 +230,7 @@ def get_images_from_directory(
     for img_path in image_paths:
         # Extract location_id from filename (assumes format: locationid_*.jpg)
         # Adjust this logic based on your naming convention
-        filename = img_path.stem
-
-        # Try to extract location_id from filename
-        try:
-            # Common format: "123_2020.jpg" or "location_123_other.jpg"
-            parts = filename.split('_')
-            location_id = None
-
-            for part in parts:
-                if part.isdigit():
-                    location_id = int(part)
-                    break
-
-            if location_id is None:
-                logger.warning(f"Could not extract location_id from {filename}, using hash")
-                location_id = hash(filename) % (10 ** 8)
-
-        except Exception as e:
-            logger.warning(f"Error parsing {filename}: {e}, using hash")
-            location_id = hash(filename) % (10 ** 8)
+        location_id = img_path.stem    
 
         # Determine year (from argument, directory name, or filename)
         img_year = year
@@ -258,15 +239,8 @@ def get_images_from_directory(
             if img_path.parent.name.isdigit():
                 img_year = int(img_path.parent.name)
             else:
-                # Try to find year in filename
-                for part in filename.split('_'):
-                    if part.isdigit() and len(part) == 4 and 1900 < int(part) < 2100:
-                        img_year = int(part)
-                        break
-
-                if img_year is None:
-                    logger.warning(f"Could not determine year for {img_path}, skipping")
-                    continue
+                logger.warning(f"Could not determine year for {img_path}, skipping")
+                continue
 
         images.append({
             'location_id': location_id,

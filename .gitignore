@@ -17,7 +17,6 @@ __pycache__
 zzz*
 *.svg
 *.png
-
-src/streettransformer/image_retrieval/*
+src/streettransformer/image_retrieval/artifacts/
 src/streettransformer/query/artifacts/*
 tests/*

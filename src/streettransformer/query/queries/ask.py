@@ -71,7 +71,7 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
         query_df = self.execute_query(f"""
             SELECT location_id, location_key, year, media_type, path, embedding
             FROM {self.get_universe_table('media_embeddings')}
-            WHERE location_id = {self.location_id}
+            WHERE location_id = '{self.location_id}'
                 AND year = {self.year}
                 AND media_type IN ('{media_type_filter}')
                 AND embedding IS NOT NULL
@@ -149,7 +149,7 @@ class ImageToImageChangeQuery(BaseQuery, ChangeMixin):
         query_df = self.execute_query(f"""
             SELECT location_id, location_key, year, embedding
             FROM {self.get_universe_table('media_embeddings')}
-            WHERE location_id = {self.location_id}
+            WHERE location_id = '{self.location_id}'
                 AND year IN ({self.year_from}, {self.year_to})
                 AND embedding IS NOT NULL
         ;""")

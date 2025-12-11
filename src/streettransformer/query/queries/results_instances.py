@@ -10,7 +10,7 @@ from ..mixins import DatabaseMixin
 logger = logging.getLogger(__name__)
 
 class QueryResultInstance(ABC, BaseModel):
-    location_id: int
+    location_id: str
     location_key: str
     similarity: float
     title: Optional[str] = None
@@ -45,7 +45,7 @@ class QueryResultInstance(ABC, BaseModel):
                         CONCAT(street1, ' & ', street2)
                     ) as street_name
                 FROM {universe_name}.locations
-                WHERE location_id = {self.location_id}
+                WHERE location_id = '{self.location_id}'
             """
 
             result = db_connection.execute(query).df()
@@ -83,7 +83,7 @@ class StateResultInstance(QueryResultInstance):
             query = f"""
                 SELECT path
                 FROM {universe_name}.media_embeddings
-                WHERE location_id = {self.location_id}
+                WHERE location_id = '{self.location_id}'
                     AND year = {self.year}
                     {media_type_filter}
                     AND path IS NOT NULL
@@ -96,7 +96,7 @@ class StateResultInstance(QueryResultInstance):
                 self.image_path = Path(result.iloc[0]['path'])
 
         except Exception as e:
-            logger.warning(f"Failed to enrich image path for location {self.location_id} year {self.year}: {e}")
+            logger.warning(f"Failed to enrich image path for location '{self.location_id}' year {self.year}: {e}")
 
 
 class ChangeResultInstance(QueryResultInstance):

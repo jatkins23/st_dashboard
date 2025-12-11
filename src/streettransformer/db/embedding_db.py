@@ -121,14 +121,14 @@ class EmbeddingDB:
             # Create media_embeddings table
             con.execute(f"""
                 CREATE TABLE IF NOT EXISTS {self.schema}.media_embeddings (
-                    location_id BIGINT NOT NULL,
+                    location_id VARCHAR NOT NULL,
                     location_key VARCHAR NOT NULL,
                     year INTEGER NOT NULL,
                     media_type VARCHAR NOT NULL,
                     path VARCHAR NOT NULL,
                     embedding FLOAT[{self.vector_dim}],
                     stats JSON,
-                    PRIMARY KEY (location_key, year, media_type),
+                    PRIMARY KEY (location_id, year, media_type),
                     UNIQUE (path)
                 )
             """)
@@ -136,7 +136,7 @@ class EmbeddingDB:
             # Create change_vectors table for pre-computed deltas
             con.execute(f"""
                 CREATE TABLE IF NOT EXISTS {self.schema}.change_vectors (
-                    location_id BIGINT NOT NULL,
+                    location_id VARCHAR NOT NULL,
                     location_key VARCHAR NOT NULL,
                     media_type VARCHAR NOT NULL,
                     year_from INTEGER NOT NULL,
@@ -144,7 +144,7 @@ class EmbeddingDB:
                     year_to INTEGER NOT NULL,
                     path_to VARCHAR NOT NULL,
                     delta FLOAT[{self.vector_dim}],
-                    PRIMARY KEY (location_key, year_from, year_to, media_type),
+                    PRIMARY KEY (location_id, year_from, year_to, media_type),
                     UNIQUE (path_from, path_to)
                 )
             """)
@@ -207,7 +207,7 @@ class EmbeddingDB:
                     con.execute(f"""
                         INSERT INTO {self.schema}.media_embeddings
                         SELECT * FROM _tmp_embeddings
-                        ON CONFLICT (location_key, year, media_type)
+                        ON CONFLICT (location_id, year, media_type)
                         DO UPDATE SET
                             location_id = excluded.location_id,
                             path = excluded.path,
@@ -219,7 +219,7 @@ class EmbeddingDB:
                     con.execute(f"""
                         INSERT INTO {self.schema}.media_embeddings
                         SELECT * FROM _tmp_embeddings
-                        ON CONFLICT (location_key, year, media_type) DO NOTHING
+                        ON CONFLICT (location_id, year, media_type) DO NOTHING
                     """)
 
                 logger.debug(f"Inserted {len(embeddings)} embeddings into {self.schema}.media_embeddings")
@@ -423,7 +423,7 @@ class EmbeddingDB:
                 con.execute(f"""
                     INSERT INTO {self.schema}.change_vectors
                     SELECT * FROM _tmp_changes
-                    ON CONFLICT (location_key, year_from, year_to, media_type)
+                    ON CONFLICT (location_id, year_from, year_to, media_type)
                     DO UPDATE SET
                         location_id = excluded.location_id,
                         path_from = excluded.path_from,

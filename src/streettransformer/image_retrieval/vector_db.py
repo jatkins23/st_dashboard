@@ -44,7 +44,7 @@ class ImageEmbedding:
     year: int
     embedding: Sequence[float]
     location_key: str #this is the immutable key to create hash
-    location_id: int #this is our persistent location_id to be joined with the base intersections
+    location_id: str #this is our persistent location_id to be joined with the base intersections
     mask_path: Optional[str] = None
     mask_embedding: Optional[Sequence[float]] = None
     fusion_embedding: Optional[Sequence[float]] = None
