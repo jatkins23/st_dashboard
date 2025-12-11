@@ -16,14 +16,14 @@
 
 ## Design Choices
 [X] Objectify everything
-[ ] Make the logger actually useful to me.
+[ ] Make the logger actually useful to me
 
 ## Backend
 [ ] !! Connect the PGvector backend
-[ ] Borough integration
+[X] Borough integration
 
 ## Styling
-[ ] Switch to DMC
+[X] Switch to DMC
 [ ] Improve the rendering and reactivity (flexibility?) of Search_bar
 
 ## Minor
@@ -31,16 +31,21 @@
 [ ] Rearrange the streets in some logical order besides alphabetical
 [X] Remove SearchCard header?
 [ ] Remove lazy imports
+[ ] DetailViewer overhaul
+    [ ] Put Borough somewhere in the Location Detail
+    [ ] Better way to display street names
+    [ ] Header color, more change.
+
 
 # Preprocessing
 [X] hash-based Unique ID
-[ ] Re-pull everything
+[X] Re-pull everything
     [X] Images
     [-] Segmentation
-    [ ] Split
-    [ ] Re-add to `location_year_files`? Turn this into a view?
-[ ] Rebuild the views
-[ ] Change to `core2.ddb` from `core.ddb`
+    [X] Split
+    [X] Re-add to `location_year_files`? Turn this into a view?
+[X] Rebuild the views
+[X] Change to `core2.ddb` from `core.ddb`
 [X] Need to convert documxents to images? No, we don't!
 [ ] **All paths need to exclude ~** 
 

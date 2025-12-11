@@ -37,7 +37,7 @@ class DetailsDocumentViewer:
                 query = f"""
                     SELECT page_file_path
                     FROM {state.CONFIG.universe_name}._location_to_document_page
-                    WHERE location_id = {self.location_id}
+                    WHERE location_id = '{self.location_id}'
                     ORDER BY page_file_path
                 """
                 df = con.execute(query).df()
@@ -45,7 +45,7 @@ class DetailsDocumentViewer:
                 print(df)
                 return df
         except Exception as e:
-            logger.warning(f"Failed to load documents for location {self.location_id}: {e}")
+            logger.warning(f"Failed to load documents for location '{self.location_id}': {e}")
             return pd.DataFrame()
 
     def _format_carousel_items(self) -> List[dict]:

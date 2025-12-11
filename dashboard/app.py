@@ -15,7 +15,7 @@ from dash import Dash
 import dash_bootstrap_components as dbc
 from .components.dashboard import Dashboard
 
-from .utils.map_utils import load_location_coordinates, load_projects, load_all_streets
+from .utils.map_utils import load_location_coordinates, load_projects, load_all_streets, load_all_boroughs
 from . import state
 
 logger = logging.getLogger(__name__)
@@ -95,6 +95,14 @@ def main():
     )
     logger.info(f"Loaded {len(all_streets)} unique streets")
 
+    # Load all unique boroughs for the borough selector
+    logger.info("Loading borough names...")
+    all_boroughs = load_all_boroughs(
+        config,
+        lambda: get_connection(config.database_path, read_only=True)
+    )
+    logger.info(f"Loaded {len(all_boroughs)} unique boroughs")
+
     # Initialize global state
     state.initialize_state(config, db, available_years, all_locations_df, projects_df)
 
@@ -111,7 +119,8 @@ def main():
     dashboard = Dashboard(
         universe_name=args.universe,
         available_years=available_years,
-        all_streets=all_streets
+        all_streets=all_streets,
+        all_boroughs=all_boroughs
     )
 
     app.layout = dashboard.layout

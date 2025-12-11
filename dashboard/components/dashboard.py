@@ -30,6 +30,7 @@ class Dashboard(BaseComponent):
         universe_name: str,
         available_years: list,
         all_streets: list,
+        all_boroughs: list = None,
         id_prefix: str = 'dashboard',
         enable_image_search: bool = True,
         enable_text_search: bool = True
@@ -40,6 +41,7 @@ class Dashboard(BaseComponent):
             universe_name: Name of the universe being explored
             available_years: List of available years for the search form
             all_streets: List of all unique street names
+            all_boroughs: List of all unique borough names
             id_prefix: Prefix for component IDs
             enable_image_search: Whether to enable image-based search (default: True)
             enable_text_search: Whether to enable text-based search (default: False)
@@ -48,6 +50,7 @@ class Dashboard(BaseComponent):
         self.universe_name = universe_name
         self.available_years = available_years
         self.all_streets = all_streets
+        self.all_boroughs = all_boroughs or []
         self.enable_image_search = enable_image_search
         self.enable_text_search = enable_text_search
 
@@ -55,11 +58,13 @@ class Dashboard(BaseComponent):
         if self.enable_image_search:
             self.image_state_search_form = ImageStateSearchForm(
                 available_years=available_years,
-                all_streets=all_streets
+                all_streets=all_streets,
+                all_boroughs=all_boroughs
             )
             self.image_change_search_form = ImageChangeSearchForm(
                 available_years=available_years,
-                all_streets=all_streets
+                all_streets=all_streets,
+                all_boroughs=all_boroughs
             )
         else:
             self.image_state_search_form = None
@@ -69,11 +74,13 @@ class Dashboard(BaseComponent):
         if self.enable_text_search:
             self.text_state_search_form = TextStateSearchForm(
                 available_years=available_years,
-                all_streets=all_streets
+                all_streets=all_streets,
+                all_boroughs=all_boroughs
             )
             self.text_change_search_form = TextChangeSearchForm(
                 available_years=available_years,
-                all_streets=all_streets
+                all_streets=all_streets,
+                all_boroughs=all_boroughs
             )
         else:
             self.text_state_search_form = None
@@ -168,15 +175,18 @@ class Dashboard(BaseComponent):
                 Output('state-query-params', 'data'),
                 Input('state-search-form--search-btn', 'n_clicks'),
                 State('selected-location-id', 'data'),
+                State('state-search-form--borough-selector', 'value'),
                 State('state-search-form--year-selector', 'value'),
                 State('state-search-form--target-year-selector', 'value'),
                 State('state-search-form--limit-dropdown', 'value'),
                 State('state-search-form--media-type-selector', 'value'),
+                State('state-search-form--use-faiss-checkbox', 'value'),
+                State('state-search-form--use-whitening-checkbox', 'value'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
-            def handle_image_state_search(n_clicks, location_id, year, target_year, limit, media_type, active_tab):
-                self.image_state_search(n_clicks, location_id, year, target_year, limit, media_type, active_tab)
+            def handle_image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
+                return self.image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab)
 
         # Register IMAGE CHANGE search callback
         if self.enable_image_search:
@@ -187,16 +197,19 @@ class Dashboard(BaseComponent):
                 Output('change-query-params', 'data'),
                 Input('change-search-form--search-btn', 'n_clicks'),
                 State('selected-location-id', 'data'),
+                State('change-search-form--borough-selector', 'value'),
                 State('change-search-form--year-from-selector', 'value'),
                 State('change-search-form--year-to-selector', 'value'),
                 State('change-search-form--limit-dropdown', 'value'),
                 State('change-search-form--media-type-selector', 'value'),
                 State('change-search-form--sequential-checkbox', 'value'),
+                State('change-search-form--use-faiss-checkbox', 'value'),
+                State('change-search-form--use-whitening-checkbox', 'value'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
-            def handle_image_change_search(n_clicks, location_id, year_from, year_to, limit, media_type, sequential_value, active_tab):
-                self.image_change_search(n_clicks, location_id, year_from, year_to, limit, media_type, sequential_value, active_tab)
+            def handle_image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab):
+                return self.image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab)
 
         # Register TEXT STATE search callback
         if self.enable_text_search:
@@ -207,16 +220,16 @@ class Dashboard(BaseComponent):
                 Output('text-state-query-params', 'data'),
                 Input('state-text-search-form--search-btn', 'n_clicks'),
                 State('state-text-search-form--text-input', 'value'),
-                State('state-text-search-form--year-selector', 'value'),
+                State('state-text-search-form--borough-selector', 'value'),
                 State('state-text-search-form--target-year-selector', 'value'),
                 State('state-text-search-form--limit-dropdown', 'value'),
                 State('state-text-search-form--media-type-selector', 'value'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
-            def handle_text_state_search(n_clicks, text, year, target_year, limit, media_type, active_tab):
-                self.text_state_search(n_clicks, text, year, target_year, limit, media_type, active_tab)
-                
+            def handle_text_state_search(n_clicks, text, boroughs, target_year, limit, media_type, active_tab):
+                return self.text_state_search(n_clicks, text, boroughs, target_year, limit, media_type, active_tab)
+
         # Register TEXT CHANGE search callback
         if self.enable_text_search:
             @app.callback(
@@ -226,16 +239,15 @@ class Dashboard(BaseComponent):
                 Output('text-change-query-params', 'data'),
                 Input('change-text-search-form--search-btn', 'n_clicks'),
                 State('change-text-search-form--text-input', 'value'),
-                State('change-text-search-form--year-from-selector', 'value'),
-                State('change-text-search-form--year-to-selector', 'value'),
+                State('change-text-search-form--borough-selector', 'value'),
                 State('change-text-search-form--limit-dropdown', 'value'),
                 State('change-text-search-form--media-type-selector', 'value'),
                 State('change-text-search-form--sequential-checkbox', 'value'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
-            def handle_text_change_search(n_clicks, text, year_from, year_to, limit, media_type, sequential_value, active_tab):
-                self.text_change_search(n_clicks, text, year_from, year_to, limit, media_type, sequential_value, active_tab)
+            def handle_text_change_search(n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab):
+                return self.text_change_search(n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab)
 
     def _header(self):
         return dbc.Row([
@@ -411,9 +423,9 @@ class Dashboard(BaseComponent):
 
 
     # ------- Search handlers  ------- #
-    def image_state_search(self, n_clicks, location_id, year, target_year, limit, media_type, active_tab):
+    def image_state_search(self, n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
         from .. import state as app_state
-        
+
         """Handle state search (image-to-image by year)."""
         # Only process if state tab is active
         if active_tab != 'image-state':
@@ -431,10 +443,13 @@ class Dashboard(BaseComponent):
             results_set = self.image_state_search_form.execute_search(
                 state=app_state,
                 location_id=location_id,
+                boroughs=boroughs,
                 year=year,
                 target_year=target_year,
                 limit=limit,
-                media_type=media_type
+                media_type=media_type,
+                use_faiss=use_faiss,
+                use_whitening=use_whitening,
             )
 
             if len(results_set) == 0:
@@ -465,10 +480,10 @@ class Dashboard(BaseComponent):
                 None
             )
         
-    def image_change_search(self, n_clicks, location_id, year_from, year_to, sequential_value, limit, media_type, active_tab):
+    def image_change_search(self, n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, active_tab, use_faiss, use_whitening):
         """Handle change search (temporal change detection)."""
         from .. import state as app_state
-        
+
         # Only process if change tab is active
         if active_tab != 'image-change':
             return dbc.Alert("Please switch to Change Search tab", color='warning'), {'display': 'block'}, [], None
@@ -488,11 +503,14 @@ class Dashboard(BaseComponent):
             results_set = self.image_change_search_form.execute_search(
                 state=app_state,
                 location_id=location_id,
+                boroughs=boroughs,
                 year_from=year_from,
                 year_to=year_to,
                 limit=limit,
                 media_type=media_type,
-                sequential=sequential
+                sequential=sequential,
+                use_faiss=use_faiss,
+                use_whitening=use_whitening
             )
 
             if len(results_set) == 0:
@@ -523,7 +541,7 @@ class Dashboard(BaseComponent):
                 None
             )
     
-    def text_state_search(self, n_clicks, text, year, target_year, limit, media_type, active_tab):
+    def text_state_search(self, n_clicks, text, boroughs, target_year, limit, media_type, active_tab):
         """Handle text state search (text-to-image by year)."""
         from .. import state as app_state
 
@@ -531,9 +549,9 @@ class Dashboard(BaseComponent):
         if active_tab != 'text-state':
             return dbc.Alert("Please switch to Text State Search tab", color='warning'), {'display': 'block'}, [], None
 
-        if not text or not year:
+        if not text:
             return (
-                dbc.Alert("Please enter text and select a year", color='warning'),
+                dbc.Alert("Please enter search text", color='warning'),
                 {'display': 'block'},
                 [],
                 None
@@ -543,7 +561,7 @@ class Dashboard(BaseComponent):
             results_set = self.text_state_search_form.execute_search(
                 state=app_state,
                 text=text,
-                year=year,
+                boroughs=boroughs,
                 target_year=target_year,
                 limit=limit,
                 media_type=media_type
@@ -577,7 +595,7 @@ class Dashboard(BaseComponent):
                 None
             )
 
-    def text_change_search(self, n_clicks, text, year_from, year_to, limit, media_type, sequential_value, active_tab):
+    def text_change_search(self, n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab):
         """Handle text change search (text-to-image temporal change detection)."""
         from .. import state as app_state
 
@@ -585,9 +603,9 @@ class Dashboard(BaseComponent):
         if active_tab != 'text-change':
             return dbc.Alert("Please switch to Text Change Search tab", color='warning'), {'display': 'block'}, [], None
 
-        if not text or not year_from or not year_to:
+        if not text:
             return (
-                dbc.Alert("Please enter text, from year, and to year", color='warning'),
+                dbc.Alert("Please enter search text", color='warning'),
                 {'display': 'block'},
                 [],
                 None
@@ -600,8 +618,7 @@ class Dashboard(BaseComponent):
             results_set = self.text_change_search_form.execute_search(
                 state=app_state,
                 text=text,
-                year_from=year_from,
-                year_to=year_to,
+                boroughs=boroughs,
                 limit=limit,
                 media_type=media_type,
                 sequential=sequential

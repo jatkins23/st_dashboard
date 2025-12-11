@@ -19,12 +19,13 @@ class BaseSearchForm(BaseComponent):
     """
 
     def __init__(self, available_years: list, all_streets: list,
-                 id_prefix: str, title: str):
+                 all_boroughs: list = None, id_prefix: str = None, title: str = None):
         """Initialize the base search form.
 
         Args:
             available_years: List of available years for dropdowns
             all_streets: List of all unique street names
+            all_boroughs: List of all unique borough names
             id_prefix: Prefix for component IDs (e.g., 'state-search-form')
             title: Display title for the card header
         """
@@ -32,6 +33,7 @@ class BaseSearchForm(BaseComponent):
         self.title = title
         self.available_years = available_years
         self.all_streets = all_streets or []
+        self.all_boroughs = all_boroughs or []
 
     # ===== COMMON ELEMENTS (shared across all forms) =====
 
@@ -54,6 +56,21 @@ class BaseSearchForm(BaseComponent):
             maxDropdownHeight=300,
             limit=10,
             value=[],
+            styles={
+                "dropdown": {"zIndex": 9999}
+            }
+        )
+
+    def _borough_selector(self) -> DashComponent:
+        """Borough selector for filtering by borough."""
+        return dmc.MultiSelect(
+            id=self.Id('borough-selector'),
+            label="Borough (optional)",
+            placeholder="Select boroughs...",
+            data=[{"label": b, "value": b} for b in self.all_boroughs],
+            searchable=False,
+            clearable=True,
+            size="sm",
             styles={
                 "dropdown": {"zIndex": 9999}
             }
@@ -217,7 +234,10 @@ class BaseSearchForm(BaseComponent):
         # Build the search form using DMC Grid
         search_components = [
             # Input selector (street selector or text input - unique per form)
-            dmc.GridCol(self._input_selector(), span=5),
+            dmc.GridCol(self._input_selector(), span=4),
+
+            # Borough selector (optional filter)
+            dmc.GridCol(self._borough_selector(), span=2),
 
             # Query-specific inputs (year, text, etc.)
             *self._query_inputs(),

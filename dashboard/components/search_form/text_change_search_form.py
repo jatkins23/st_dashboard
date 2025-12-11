@@ -22,16 +22,18 @@ class TextChangeSearchForm(BaseSearchForm):
     - Search button
     """
 
-    def __init__(self, available_years: list, all_streets: list = None):
+    def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
         """Initialize the change text search form.
 
         Args:
             available_years: List of available years for dropdowns
             all_streets: Not used for text search, but kept for consistency
+            all_boroughs: List of all unique borough names
         """
         super().__init__(
             available_years=available_years,
             all_streets=all_streets,
+            all_boroughs=all_boroughs,
             id_prefix='change-text-search-form',
             title='Text-to-Image Change Search'
         )
@@ -44,17 +46,16 @@ class TextChangeSearchForm(BaseSearchForm):
         """No year inputs for text change search."""
         return []
 
-    def execute_search(self, state, text, year_from, year_to, limit, media_type, sequential, **kwargs):
+    def execute_search(self, state, text, limit, media_type, sequential, boroughs=None, **kwargs):
         """Execute change text search (text-to-image temporal change detection).
 
         Args:
             state: Application state module
             text: Search text query
-            year_from: Starting year for change detection
-            year_to: Ending year for change detection
             limit: Maximum number of results
             media_type: Type of media to search
             sequential: Whether to require sequential years
+            boroughs: Optional list of boroughs to filter by
 
         Returns:
             ChangeResultsSet with enriched results
@@ -74,8 +75,6 @@ class TextChangeSearchForm(BaseSearchForm):
             config=state.CONFIG,
             db=state.DB,
             text=text,
-            year_from=year_from,
-            year_to=year_to,
             limit=limit,
             media_types=[selected_media_type],
             sequential=sequential,
@@ -91,6 +90,24 @@ class TextChangeSearchForm(BaseSearchForm):
             with get_connection(state.CONFIG.database_path, read_only=True) as con:
                 for result in results_set:
                     result.enrich_street_names(con, state.CONFIG.universe_name)
+
+        # Filter by borough if specified
+        if boroughs and len(boroughs) > 0:
+            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+                # Get borough for each result location
+                location_ids = [r.location_id for r in results_set]
+                if location_ids:
+                    query = f"""
+                        SELECT location_id, boro
+                        FROM {state.CONFIG.universe_name}.locations
+                        WHERE location_id IN ({','.join(map(str, location_ids))})
+                    """
+                    boro_df = con.execute(query).df()
+                    boro_map = dict(zip(boro_df['location_id'], boro_df['boro']))
+
+                    # Filter results to only those in selected boroughs
+                    filtered_results = [r for r in results_set if boro_map.get(r.location_id) in boroughs]
+                    results_set.results = filtered_results
 
         return results_set
 

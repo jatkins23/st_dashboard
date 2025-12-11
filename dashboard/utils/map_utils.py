@@ -287,6 +287,36 @@ def load_all_streets(config, db_connection_func) -> list:
     return street_list
 
 
+def load_all_boroughs(config, db_connection_func) -> list:
+    """Load all unique borough names from locations.
+
+    Args:
+        config: STConfig object with database path and universe name
+        db_connection_func: Function that returns database connection
+
+    Returns:
+        Sorted list of unique borough names
+    """
+    try:
+        with db_connection_func() as con:
+            query = f"""
+                SELECT DISTINCT boro
+                FROM {config.universe_name}.locations
+                WHERE boro IS NOT NULL
+                AND EXISTS (
+                    SELECT 1 FROM {config.universe_name}.media_embeddings e
+                    WHERE e.location_id = locations.location_id
+                    AND e.embedding IS NOT NULL
+                )
+                ORDER BY boro
+            """
+            df = con.execute(query).df()
+            return df['boro'].dropna().to_list()
+    except Exception as e:
+        logger.error(f"Failed to load boroughs: {e}")
+        return []
+
+
 def get_location_details(config, db_connection_func, location_id: int) -> dict:
     """Get detailed information about a specific location.
 

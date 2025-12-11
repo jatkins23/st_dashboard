@@ -27,6 +27,9 @@ class DetailsProjectViewer:
 
         # Filter projects for this location
         location_projects = state.PROJECTS_DF[state.PROJECTS_DF['location_id'] == self.location_id]
+        print('projects')
+        print(state.PROJECTS_DF[['ProjectID', 'location_id']])
+        print(location_projects)
 
         if location_projects.empty:
             return [
@@ -36,6 +39,7 @@ class DetailsProjectViewer:
 
         # Create table rows
         table_rows = []
+        print(table_rows)
         for _, row in location_projects.iterrows():
             table_rows.append(
                 dmc.TableTr([

@@ -59,15 +59,24 @@ class Map(BaseComponent):
             Input('selected-location-id', 'data'),
             Input('state-result-locations', 'data'),
             Input('change-result-locations', 'data'),
+            Input('text-state-result-locations', 'data'),
+            Input('text-change-result-locations', 'data'),
             prevent_initial_call=False
         )
-        def update_map(active_tab, selected_location_id, state_results, change_results):
+        def update_map(active_tab, selected_location_id, image_state_results,
+                      image_change_results, text_state_results, text_change_results):
             """Update map with selected location and results from active tab."""
             # Use results from the active tab
-            if active_tab == 'change':
-                result_location_ids = change_results or []
-            else:  # Default to state tab
-                result_location_ids = state_results or []
+            result_location_ids = []
+
+            if active_tab == 'image-state':
+                result_location_ids = image_state_results or []
+            elif active_tab == 'image-change':
+                result_location_ids = image_change_results or []
+            elif active_tab == 'text-state':
+                result_location_ids = text_state_results or []
+            elif active_tab == 'text-change':
+                result_location_ids = text_change_results or []
 
             fig = create_location_map(
                 projects_df=state.PROJECTS_DF,

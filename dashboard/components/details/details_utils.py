@@ -35,7 +35,7 @@ def get_location_details(location_id, query_year, state):
                         CONCAT(street1, ' & ', street2)
                     ) as street_name
                 FROM {state.CONFIG.universe_name}.locations
-                WHERE location_id = {location_id}
+                WHERE location_id = '{location_id}'
             """
             result = con.execute(query).df()
 
@@ -48,7 +48,7 @@ def get_location_details(location_id, query_year, state):
             image_query = f"""
                 SELECT path, media_type, year
                 FROM {state.CONFIG.universe_name}.media_embeddings
-                WHERE location_id = {location_id}
+                WHERE location_id = '{location_id}'
                     AND media_type = 'image'
                     AND path IS NOT NULL
                 ORDER BY year ASC
