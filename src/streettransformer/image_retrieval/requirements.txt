@@ -1,0 +1,18 @@
+# Image Retrieval Experiment Dependencies
+
+# Core dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+pillow>=9.5.0
+open-clip-torch>=2.24.0
+faiss-cpu>=1.7.4
+pyarrow>=13.0.0
+huggingface_hub>=0.34.0,<1.0.0
+
+# Database
+psycopg2-binary>=2.9.6
+pgvector>=0.2.0
+
+# Utilities
+numpy>=1.24.0
