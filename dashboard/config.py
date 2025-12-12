@@ -40,6 +40,12 @@ class PGConfig:
     vector_dimension: int = 512  # Default CLIP ViT-B-32 dimension
     # Field mapping: PostgreSQL field name that maps to DuckDB's location_id
     pg_location_id_field: str = "location_key"  # Currently location_key in PG = location_id in DuckDB
+    # Artifacts directory containing FAISS indexes and whitening parameters
+    # Query classes will construct specific paths based on query type:
+    # - image=state: whiten_image.npz, state_hnsw.faiss
+    # - delta=change: whiten_delta.npz, delta_hnsw.faiss
+    # - fusion=sidebyside: whiten_fusion.npz, sidebyside_hnsw.faiss
+    artifacts_dir: Optional[str] = None  # Path to artifacts directory
     
     
 
@@ -48,7 +54,7 @@ class PGConfig:
 class FeatureFlags:
     """Feature flags for gradual rollout and A/B testing."""
     use_vector_search: bool = False  # Enable PostgreSQL vector search
-    use_whitening: bool = False      # Enable whitening transform
-    use_faiss_fallback: bool = True  # Fallback to FAISS if PostgreSQL fails
+    use_whitening: bool = True       # Enable whitening transform
+    use_faiss: bool = False          # Enable FAISS approximate search
     log_search_metrics: bool = True  # Log latency/performance metrics
     encoder_selection: bool = False  # Allow user to select encoder (CLIP/BLIP/etc)

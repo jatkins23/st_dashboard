@@ -5,9 +5,15 @@ This module provides orthogonal mixins for building query classes:
 - Functional mixins: DatabaseMixin, SearchMethodMixin
 """
 
+import os
+from pathlib import Path
 from typing import Optional, Callable
 import pandas as pd
 import logging
+from dotenv import load_dotenv
+from abc import abstractmethod
+
+load_dotenv()
 
 from ..config import STConfig
 from ..db.database import get_connection
@@ -112,13 +118,96 @@ class SearchMethodMixin:
     Attributes:
         limit: Maximum number of results
         remove_self: Whether to remove query location from results
+        use_faiss: Whether to use FAISS for approximate search
+        use_whitening: Whether to apply whitening reranking
+        artifacts_dir: Path to artifacts directory
+        media_types: List of media types (e.g., ['image'], ['fusion'], ['mask'])
     """
     limit: int = 10
     remove_self: bool = True
+    use_faiss: bool = False
+    use_whitening: bool = True
+    artifacts_dir: Path = Path(str(os.getenv('ARTIFACTS_DIR')))
+    media_type: str = 'image'
+    
+    def __post_init__(self):
+        if self.use_whitening or self.use_faiss:
+            if not self.artifacts_dir:
+                raise ValueError('Must set `artifacts_dir` or `ARTIFACTS_DIR` to use FAISS or Whitening')
 
-    def get_search_method_name(self) -> str:
+    @property
+    def media_suffix(self) -> str:
+        """Get media type suffix for artifact filenames.
+
+        Returns empty string for 'image', otherwise returns '_' + media_type.
+        """
+        match self.media_type:
+            case "image":
+                return ''
+            case "sidebyside":
+                return '_fusion'
+            case 'mask':
+                return '_mask'
+            case _:
+                raise ValueError(f"Unrecognized media_type '{self.media_type}'")
+
+    @property
+    def whitening_path(self) -> Optional[str]:
+        """Get path to whitening file.
+
+        Returns:
+            Path to whiten.npz file in artifacts directory
+        """
+        if not self.artifacts_dir:
+            return None
+        
+        match self.media_type:
+            case 'image':
+                return self.artifacts_dir / 'whiten.npz'
+            case 'sidebyside':
+                return self.artifacts_dir / 'fusion_whiten.npz'
+            case 'mask': 
+                return None
+                # if self.should_whiten:
+                #     raise ValueError(f'Unsure what to do with artifact_path {self}')
+                # return None
+
+    @abstractmethod
+    @property
+    def query_type_prefix(self) -> str:
+        """Get query type prefix ('state' or 'delta').
+
+        Override in subclasses to specify query type.
+        """
+        pass
+
+    @property
+    def faiss_index_path(self) -> Path:
+        """Get path to FAISS index for this query type and media type.
+
+        Returns:
+            Path like: state_hnsw.faiss, delta_fusion_hnsw.faiss, etc.
+        """
+        if not self.artifacts_dir:
+            logger.warning('No `artifacts_dir` found while trying to use faiss!')
+            return None
+        
+        filename = f"{self.query_type_prefix}{self.media_suffix}_hnsw.faiss"
+        faiss_path = self.artifacts_dir / filename
+        if not faiss_path.exists():
+            raise f"faiss_path '{faiss_path}' NOT found!"
+            
+        return faiss_path
+
+    @property
+    def search_method_name(self) -> str:
         """Get human-readable search method description."""
-        return "PostgreSQL pgvector"
+        method = "PostgreSQL pgvector"
+        if self.use_faiss:
+            method = "FAISS + " + method
+        if self.use_whitening:
+            method += " + Whitening"
+        return method
 
 
 class TextQueryMixin:
@@ -129,7 +218,6 @@ class TextQueryMixin:
     def __post_init__self(self):
         if self.clip_encoder is None:
             self.clip_encoder = CLIPEncoder()
-
 
     # Override StateMixin methods since text queries don't have location_id
     def get_temporal_key(self) -> str:

@@ -59,6 +59,14 @@ def main():
     parser.add_argument('--vector-dim', type=int, default=512,
                         help='Vector dimension (default: 512 for CLIP ViT-B-32)')
 
+    # Artifacts directory for FAISS and whitening
+    parser.add_argument('--artifacts', type=str, default=None,
+                        help='Path to artifacts directory containing FAISS indexes and whitening parameters')
+    parser.add_argument('--enable-whitening', action='store_true', default=True,
+                        help='Enable whitening reranking (default: enabled)')
+    parser.add_argument('--enable-faiss', action='store_true', default=False,
+                        help='Enable FAISS approximate search (default: disabled)')
+
     args = parser.parse_args()
 
     # Validate required arguments
@@ -133,11 +141,14 @@ def main():
         db_password=args.pg_password,
         db_host=args.pg_host,
         db_port=args.pg_port,
-        vector_dimension=args.vector_dim
+        vector_dimension=args.vector_dim,
+        artifacts_dir=args.artifacts
     )
 
     feature_flags = FeatureFlags(
-        use_vector_search=args.enable_vector_search
+        use_vector_search=args.enable_vector_search,
+        use_whitening=args.enable_whitening,
+        use_faiss=args.enable_faiss
     )
     state.initialize_feature_flags(feature_flags)
 

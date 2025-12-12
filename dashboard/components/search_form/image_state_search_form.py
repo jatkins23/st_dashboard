@@ -73,6 +73,8 @@ class ImageStateSearchForm(BaseSearchForm):
         Returns:
             StateResultsSet with enriched results
         """
+        
+        
         from streettransformer.db.database import get_connection
         from streettransformer.query.queries.ask import ImageToImageStateQuery
 
@@ -89,7 +91,11 @@ class ImageStateSearchForm(BaseSearchForm):
             target_years=[target_year] if target_year else None,
             limit=limit,
             media_types=[selected_media_type],
-            remove_self=True
+            remove_self=True,
+            use_whitening=state.FEATURE_FLAGS.use_whitening if state.FEATURE_FLAGS else False,
+            use_faiss=state.FEATURE_FLAGS.use_faiss if state.FEATURE_FLAGS else False,
+            whitening_path=state.PG_CONFIG.whitening_path if state.PG_CONFIG else None,
+            faiss_index_path=state.PG_CONFIG.faiss_index_path if state.PG_CONFIG else None
         )
 
         results_set = query.search()

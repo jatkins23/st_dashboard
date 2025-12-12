@@ -24,8 +24,22 @@ Example:
     >>> results = query.execute()
 """
 
-from .queries import ImageToImageStateQuery, ImageToImageChangeQuery, QueryResultInstance, StateResultInstance, ChangeResultInstance, QueryResultsSet, StateResultsSet, ChangeResultsSet
-from .mixins import StateMixin, ChangeMixin, DatabaseMixin, SearchMethodMixin
+from .queries import (
+    ImageToImageStateQuery, 
+    ImageToImageChangeQuery, 
+    QueryResultInstance, 
+    StateResultInstance, 
+    ChangeResultInstance, 
+    QueryResultsSet, 
+    StateResultsSet, 
+    ChangeResultsSet
+)
+from .mixins import (
+    StateMixin, 
+    ChangeMixin, 
+    DatabaseMixin, 
+    SearchMethodMixin
+)
 from .clip_embedding import CLIPEncoder
 
 __all__ = [

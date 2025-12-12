@@ -4,6 +4,7 @@ import logging
 from abc import ABC
 from pydantic import BaseModel, ConfigDict
 import hashlib
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,9 @@ from ..mixins import SearchMethodMixin, DatabaseMixin, ChangeMixin, StateMixin, 
 from .results_sets import QueryResultsSet, StateResultsSet, ChangeResultsSet
 from .results_instances import StateResultInstance, ChangeResultInstance
 from .metadata import QueryMetadata
+from ...image_retrieval.query_rerank import load_whitening, rerank_exact_whitened
+from ...image_retrieval.faiss_index import HNSWIndex
+import json
 
 # from ... import FAISSIndexer
 # from ... import WhiteningTransform
@@ -35,6 +39,9 @@ class BaseQuery(DatabaseMixin, SearchMethodMixin, BaseModel):
 
 class ImageToImageStateQuery(BaseQuery, StateMixin):
     def search(self)  -> StateResultsSet:
+        print('\n\n----------------------')
+        print(json.dumps(self.__dict__, indent=4, default=str))
+        print('----------------------\n\n')
         start_time = time.perf_counter()
         results_dict = self._execute_search().to_dict(orient='records')
         results = [StateResultInstance.model_validate(row) for row in results_dict]
@@ -88,13 +95,20 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
         # Determine target year for search
         target_year = self.target_years[0] if self.target_years else None
 
-        # Use pgvector for similarity search
-        search_hits = self.vector_db.search_similar(
-            query_embedding=query_vec,
-            top_k=self.limit * 2 if self.remove_self else self.limit,
-            year=target_year,
-            return_metadata=True
-        )
+        # Determine search method: FAISS or pgvector
+        if self.use_faiss and self.faiss_index_path:
+            # Use FAISS for fast approximate search
+            search_hits = self._search_with_faiss(query_vec, target_year)
+        else:
+            # Use pgvector for similarity search
+            # Fetch more results if we're going to rerank with whitening
+            shortlist_multiplier = 5 if self.use_whitening else 2
+            search_hits = self.vector_db.search_similar(
+                query_embedding=query_vec,
+                top_k=self.limit * shortlist_multiplier if self.remove_self else self.limit * shortlist_multiplier,
+                year=target_year,
+                return_metadata=True
+            )
 
         # Convert SearchHit objects to DataFrame
         results = pd.DataFrame([
@@ -135,19 +149,35 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
         # Remove self from results
         if self.remove_self and not results.empty:
             results = results[results['location_id'] != self.location_id]
-        results = results.head(self.limit)
 
         # Apply whitening reranking if requested
-        # if self.use_whitening and not results.empty:
-        #     whiten = WhiteningTransform(self.config)
-        #     # Use first media type for whitening (assuming whitening stats are per media_type)
-        #     results = whiten.rerank_results(
-        #         query_vector=query_vec,
-        #         results=results,
-        #         year=self.target_years[0] if self.target_years else self.year, # TODO: again make sure target_year takes a list
-        #         media_type=media_types[0] if len(media_types) == 1 else None,
-        #         top_k=self.limit
-        #     )
+        if self.use_whitening and self.whitening_path and not results.empty:
+            # Load whitening parameters
+            mu, W = load_whitening(self.whitening_path)
+
+            if mu is not None and W is not None:
+                # Fetch embeddings for reranking
+                candidate_paths = results['path'].tolist()
+                candidate_vecs = self.vector_db.fetch_embeddings_by_paths(candidate_paths)
+
+                # Rerank with whitening
+                reranked = rerank_exact_whitened(
+                    q=query_vec,
+                    candidate_ids=candidate_paths,
+                    candidate_vecs=candidate_vecs,
+                    mu=mu,
+                    W=W,
+                    top_k=len(candidate_paths)
+                )
+
+                # Update similarities
+                path_to_similarity = {path: sim for path, sim in reranked}
+                results = results.copy()
+                results['similarity'] = results['path'].map(path_to_similarity)
+                results = results.sort_values('similarity', ascending=False)
+
+        # Final limit
+        results = results.head(self.limit)
 
         return results
             

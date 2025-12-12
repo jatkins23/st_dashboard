@@ -1026,7 +1026,6 @@ def run_pipeline(
     print("-" * 70)
     with VectorDB(vector_dimension=resolved_vector_dim, **db_cfg) as db:
         upserted = db.insert_embeddings(rows_db)
-        print(rows_db)
         print(f"Upserted {upserted} rows into pgvector.")
         if force_reindex:
             print(f"Rebuilding IVFFlat index with lists={ivf_lists}...")

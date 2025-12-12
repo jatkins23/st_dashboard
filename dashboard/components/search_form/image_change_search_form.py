@@ -103,7 +103,11 @@ class ImageChangeSearchForm(BaseSearchForm):
             limit=limit,
             media_types=[selected_media_type],
             sequential=sequential,
-            remove_self=True
+            remove_self=True,
+            use_whitening=state.FEATURE_FLAGS.use_whitening if state.FEATURE_FLAGS else False,
+            use_faiss=state.FEATURE_FLAGS.use_faiss if state.FEATURE_FLAGS else False,
+            whitening_path=state.PG_CONFIG.whitening_path if state.PG_CONFIG else None,
+            faiss_index_path=state.PG_CONFIG.faiss_index_path if state.PG_CONFIG else None
         )
 
         results_set = query.search()
