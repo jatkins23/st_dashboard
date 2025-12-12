@@ -4,11 +4,10 @@ from typing import Dict, Iterable, List, Optional, Union, cast
 
 import numpy as np
 
-from .blip_embeddings import BLIPEmbedder
-from .clip_embeddings import CLIPEmbedder
-from .vector_db import ChangeVector, SearchHit, StoredEmbedding, VectorDB
+from clip_embeddings import CLIPEmbedder
+from vector_db import ChangeVector, SearchHit, StoredEmbedding, VectorDB
 
-EmbedderType = Union[CLIPEmbedder, BLIPEmbedder]
+EmbedderType = CLIPEmbedder
 
 
 def _make_embedder(
@@ -16,7 +15,6 @@ def _make_embedder(
     *,
     clip_model: str,
     clip_pretrained: str,
-    blip_model: str,
     eva_model: str,
     eva_pretrained: str,
     device: str | None = None,
@@ -24,13 +22,8 @@ def _make_embedder(
     name = encoder.strip().lower()
     if name == "clip":
         return CLIPEmbedder(
-            model_name=clip_model, 
-            pretrained=clip_pretrained, 
-            device=device
-            )
-    if name == "blip":
-        return BLIPEmbedder(
-            model_name=blip_model, 
+            model_name=clip_model,
+            pretrained=clip_pretrained,
             device=device
             )
     if name == "eva_clip":
@@ -39,7 +32,7 @@ def _make_embedder(
             pretrained=eva_pretrained,
             device=device,
         )
-    raise ValueError(f"Unsupported encoder '{encoder}'. Choose from: clip, blip, eva_clip.")
+    raise ValueError(f"Unsupported encoder '{encoder}'. Choose from: clip, eva_clip.")
 
 
 def _feature_to_column(name: str) -> str:
@@ -261,7 +254,7 @@ Example usages:
     )
     def _append_suffix(name: str, encoder: str) -> str:
         suffix = f"_{encoder}"
-        known = ("_clip", "_blip", "_siglip", "_eva_clip")
+        known = ("_clip", "_eva_clip")
         if name.endswith(known):
             return name
         return name if name.endswith(suffix) else f"{name}{suffix}"
@@ -292,14 +285,12 @@ Example usages:
         default="image",
         help="Embedding column to query: image (base CLIP), fusion (mask-enhanced), mask (segmentation-only), mask-image (raw mask tile).",
     )
-    parser.add_argument("--encoder", choices=["clip", "blip", "eva_clip"], default="clip",
+    parser.add_argument("--encoder", choices=["clip", "eva_clip"], default="clip",
                         help="Encoder to use for on-the-fly embeddings.")
     parser.add_argument("--clip-model", type=str, default="ViT-B-32",
                         help="open_clip model name when --encoder=clip.")
     parser.add_argument("--clip-pretrained", type=str, default="laion2b_s34b_b79k",
                         help="open_clip pretrained tag when --encoder=clip.")
-    parser.add_argument("--blip-model", type=str, default="Salesforce/blip-itm-base-coco",
-                        help="BLIP checkpoint when --encoder=blip.")
     parser.add_argument("--eva-model", type=str, default="EVA02-CLIP-g-14",
                         help="EVA-CLIP model name (open_clip) when --encoder=eva_clip.")
     parser.add_argument("--eva-pretrained", type=str, default="laion2b_s4b_b79k",
@@ -338,7 +329,8 @@ def main() -> None:
             args.encoder,
             clip_model=args.clip_model,
             clip_pretrained=args.clip_pretrained,
-            blip_model=args.blip_model,
+            eva_model=args.eva_model,
+            eva_pretrained=args.eva_pretrained,
             device=args.device,
         )
     resolved_vector_dim = args.vector_dim or (

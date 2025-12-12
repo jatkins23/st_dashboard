@@ -10,7 +10,9 @@ def compute_whitener(
     mu = X.mean(axis=0, dtype=np.float64)
     Xc = (X - mu).astype(np.float64, copy=False)
     U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
-    W = (Vt / np.sqrt((S**2 / max(len(X)-1, 1)) + eps)).astype(np.float32)
+    n = max(X.shape[0] - 1, 1)
+    denom = np.sqrt((S**2 / n) + eps).reshape(-1, 1)
+    W = (Vt / denom).astype(np.float32)
     return mu.astype(np.float32), W
 
 def apply_whitening(x: np.ndarray, mu: np.ndarray | None, W: np.ndarray | None) -> np.ndarray:

@@ -44,7 +44,7 @@ class ImageEmbedding:
     year: int
     embedding: Sequence[float]
     location_key: str #this is the immutable key to create hash
-    location_id: str #this is our persistent location_id to be joined with the base intersections
+    location_id: int #this is our persistent location_id to be joined with the base intersections
     mask_path: Optional[str] = None
     mask_embedding: Optional[Sequence[float]] = None
     fusion_embedding: Optional[Sequence[float]] = None
@@ -59,7 +59,7 @@ class ImageEmbedding:
         mask_path = str(self.mask_path) if self.mask_path is not None else None
         mask_image_vec = None if self.mask_image_embedding is None else [float(v) for v in self.mask_image_embedding]
         return (
-            self.location_id,
+            int(self.location_id),
             str(self.location_key),
             int(self.year),
             str(self.image_path),
@@ -137,7 +137,7 @@ class VectorDB:
 
     Table layout (see setup_schema):
       image_embeddings(
-        location_id   TEXT        NOT NULL,
+        location_id   BIGINT      NOT NULL,
         location_key  TEXT        NOT NULL,
         year          INT         NOT NULL,
         image_path    TEXT        NOT NULL,
@@ -371,7 +371,7 @@ class VectorDB:
             cur.execute(
                 f"""
                 CREATE TABLE IF NOT EXISTS image_embeddings (
-                  location_id       TEXT        NOT NULL,
+                  location_id       BIGINT      NOT NULL,
                   location_key      TEXT        NOT NULL,
                   year              INT         NOT NULL,
                   image_path        TEXT        NOT NULL,
@@ -422,21 +422,21 @@ class VectorDB:
             """
                 )
 
-            # cur.execute(
-            #     """
-            # DO $$
-            # BEGIN
-            #   IF NOT EXISTS (
-            #     SELECT 1 FROM information_schema.columns
-            #     WHERE table_schema = 'public'
-            #       AND table_name   = 'image_embeddings'
-            #       AND column_name  = 'location_id'
-            #   ) THEN
-            #     EXECUTE 'ALTER TABLE image_embeddings ADD COLUMN location_id BIGINT';
-            #   END IF;
-            # END $$;
-            #     """
-            # )
+            cur.execute(
+                """
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name   = 'image_embeddings'
+                  AND column_name  = 'location_id'
+              ) THEN
+                EXECUTE 'ALTER TABLE image_embeddings ADD COLUMN location_id BIGINT';
+              END IF;
+            END $$;
+                """
+            )
 
             cur.execute(
                 """
@@ -488,22 +488,22 @@ class VectorDB:
                 """
             )
 
-            # # 5) populate location_id for rows that lack it
-            # cur.execute(
-            #     """
-            #     UPDATE image_embeddings
-            #        SET location_id = abs(hashtext(location_key))::bigint
-            #      WHERE location_id IS NULL;
-            #     """
-            # )
+            # 5) populate location_id for rows that lack it
+            cur.execute(
+                """
+                UPDATE image_embeddings
+                   SET location_id = abs(hashtext(location_key))::bigint
+                 WHERE location_id IS NULL;
+                """
+            )
 
-            # # 6) ensure location_id column is NOT NULL
-            # cur.execute(
-            #     """
-            #     ALTER TABLE image_embeddings
-            #     ALTER COLUMN location_id SET NOT NULL;
-            #     """
-            # )
+            # 6) ensure location_id column is NOT NULL
+            cur.execute(
+                """
+                ALTER TABLE image_embeddings
+                ALTER COLUMN location_id SET NOT NULL;
+                """
+            )
 
             # 7) ensure primary key covers (location_key, year)
             cur.execute(
@@ -655,7 +655,7 @@ class VectorDB:
             loc_id, loc_key, year, image_path, emb_list, mask_path, mask_vec, fusion_vec, stats_json, mask_image_vec = t
             payload.append(
                 (
-                    str(loc_id),
+                    int(loc_id),
                     str(loc_key),
                     int(year),
                     str(image_path),
@@ -736,7 +736,12 @@ class VectorDB:
             self.conn.rollback()
             raise
         finally:
+            cur.execute('SELECT count(*) FROM image_embeddings;')
+            result = cur.fetchone()
+            self.conn.commit()
             cur.close()
+            if result:
+                print(f"Count of image_embeddings: {result[0]}")
 
     # ------------------------------------------------------------------- search
     def search_similar(

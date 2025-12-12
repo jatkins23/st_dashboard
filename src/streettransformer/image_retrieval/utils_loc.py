@@ -34,7 +34,8 @@ def location_key(path: str) -> str:
     #     return p.stem or stripped
     # stemmed = list(parts[:-1])
     # stemmed.append(Path(parts[-1]).stem)
-    return Path(path).name.removesuffix('.png')
+    # return str(Path(*stemmed))
+    return Path(path).stem
 
 
 def location_hash(loc_key: str, *, digest_size: int = 8) -> int:

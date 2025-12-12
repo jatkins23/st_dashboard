@@ -13,8 +13,8 @@ from .results_sets import QueryResultsSet, StateResultsSet, ChangeResultsSet
 from .results_instances import StateResultInstance, ChangeResultInstance
 from .metadata import QueryMetadata
 
-from ... import FAISSIndexer
-from ... import WhiteningTransform
+# from ... import FAISSIndexer
+# from ... import WhiteningTransform
 
 class BaseQuery(DatabaseMixin, SearchMethodMixin, BaseModel):
     # use_faiss: bool = True
@@ -87,17 +87,17 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
 
         query_vec = np.array(query_df.iloc[0]['embedding'])
 
-        if self.use_faiss:
-            indexer = FAISSIndexer(self.config)
-            results = indexer.search(
-                query_vector=query_vec,
-                k = self.limit * 2, # See below for why 2
-                year = self.target_years[0] if self.target_years else self.year # TODO: fix years to be a list . Also this should search all years!
-            )
+        # if self.use_faiss:
+        #     indexer = FAISSIndexer(self.config)
+        #     results = indexer.search(
+        #         query_vector=query_vec,
+        #         k = self.limit * 2, # See below for why 2
+        #         year = self.target_years[0] if self.target_years else self.year # TODO: fix years to be a list . Also this should search all years!
+        #     )
 
-            # Filter results by media_type if FAISS index contains multiple types
-            if 'media_type' in results.columns:
-                results = results[results['media_type'].isin(media_types)]
+        #     # Filter results by media_type if FAISS index contains multiple types
+        #     if 'media_type' in results.columns:
+        #         results = results[results['media_type'].isin(media_types)]
 
         # Remove self from results
         if self.remove_self:
@@ -105,16 +105,16 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
         results = results.head(self.limit)
 
         # Apply whitening reranking if requested
-        if self.use_whitening and not results.empty:
-            whiten = WhiteningTransform(self.config)
-            # Use first media type for whitening (assuming whitening stats are per media_type)
-            results = whiten.rerank_results(
-                query_vector=query_vec,
-                results=results,
-                year=self.target_years[0] if self.target_years else self.year, # TODO: again make sure target_year takes a list
-                media_type=media_types[0] if len(media_types) == 1 else None,
-                top_k=self.limit
-            )
+        # if self.use_whitening and not results.empty:
+        #     whiten = WhiteningTransform(self.config)
+        #     # Use first media type for whitening (assuming whitening stats are per media_type)
+        #     results = whiten.rerank_results(
+        #         query_vector=query_vec,
+        #         results=results,
+        #         year=self.target_years[0] if self.target_years else self.year, # TODO: again make sure target_year takes a list
+        #         media_type=media_types[0] if len(media_types) == 1 else None,
+        #         top_k=self.limit
+        #     )
 
         return results
             

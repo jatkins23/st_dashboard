@@ -1,11 +1,9 @@
 # compute_whiten_stats.py
 from __future__ import annotations
-from pathlib import Path
 import argparse, numpy as np
-
-from .vector_db import VectorDB
-from .whitening import compute_whitener
-
+from vector_db import VectorDB
+from whitening import compute_whitener
+from pathlib import Path
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--db-name", default="my_images")

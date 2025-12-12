@@ -2,9 +2,9 @@
 
 from .database import Database, get_connection
 from .embedding_db import EmbeddingDB, MediaEmbedding, ImageEmbedding
-from .npz_cache import NPZCache, CacheInfo
-from .faiss_index import FAISSIndexer, IndexInfo
-from .whitening import WhiteningTransform, WhiteningStats
+# from .npz_cache import NPZCache, CacheInfo
+# from .faiss_index import FAISSIndexer, IndexInfo
+# from .whitening import WhiteningTransform, WhiteningStats
 
 __all__ = [
     "Database",

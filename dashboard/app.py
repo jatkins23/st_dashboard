@@ -41,6 +41,22 @@ def main():
     parser.add_argument('--host', type=str, default='127.0.0.1', help='Host to bind to')
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
 
+    # PostgreSQL vector search arguments
+    parser.add_argument('--pg-host', type=str, default=os.getenv('PGHOST', 'localhost'),
+                        help='PostgreSQL host (default: PGHOST env var or localhost)')
+    parser.add_argument('--pg-port', type=int, default=int(os.getenv('PGPORT', '5432')),
+                        help='PostgreSQL port (default: PGPORT env var or 5432)')
+    parser.add_argument('--pg-db', type=str, default=os.getenv('PGDATABASE', 'image_retrieval'),
+                        help='PostgreSQL database name (default: PGDATABASE env var or image_retrieval)')
+    parser.add_argument('--pg-user', type=str, default=os.getenv('PGUSER', 'postgres'),
+                        help='PostgreSQL user (default: PGUSER env var or postgres)')
+    parser.add_argument('--pg-password', type=str, default=os.getenv('PGPASSWORD', ''),
+                        help='PostgreSQL password (default: PGPASSWORD env var or empty)')
+    parser.add_argument('--enable-vector-search', action='store_true',
+                        help='Enable PostgreSQL vector search (default: disabled)')
+    parser.add_argument('--vector-dim', type=int, default=512,
+                        help='Vector dimension (default: 512 for CLIP ViT-B-32)')
+
     args = parser.parse_args()
 
     # Validate required arguments
@@ -105,6 +121,35 @@ def main():
 
     # Initialize global state
     state.initialize_state(config, db, available_years, all_locations_df, projects_df)
+
+    # Initialize PostgreSQL vector search if enabled
+    from dashboard.config import PGConfig, FeatureFlags
+
+    pg_config = PGConfig(
+        db_name=args.pg_db,
+        db_user=args.pg_user,
+        db_password=args.pg_password,
+        db_host=args.pg_host,
+        db_port=args.pg_port,
+        vector_dimension=args.vector_dim
+    )
+
+    feature_flags = FeatureFlags(
+        use_vector_search=args.enable_vector_search
+    )
+    state.initialize_feature_flags(feature_flags)
+
+    if args.enable_vector_search:
+        logger.info("Initializing PostgreSQL vector search...")
+        if state.initialize_postgres_pool(pg_config):
+            if state.initialize_vector_db(pg_config):
+                logger.info("Vector search enabled successfully")
+            else:
+                logger.warning("Vector search initialization failed, will use DuckDB fallback")
+                feature_flags.use_vector_search = False
+        else:
+            logger.warning("PostgreSQL connection pool initialization failed, will use DuckDB fallback")
+            feature_flags.use_vector_search = False
 
     # Create app and layout
     assets_folder = Path(__file__).parent.parent / 'assets'

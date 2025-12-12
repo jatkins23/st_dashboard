@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Iterable, List, Sequence, Tuple, Optional, Dict
 
 import numpy as np
-from .utils import extract_year_from_path, location_id_from_path
+from utils import extract_year_from_path, location_id_from_path
 
 
 import faiss
