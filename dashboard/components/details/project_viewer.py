@@ -4,10 +4,14 @@ from dash import html
 import dash_mantine_components as dmc
 from typing import Optional
 from ... import state
+from .base_modality_viewer import BaseModalityViewer
 
 
-class DetailsProjectViewer:
+class DetailsProjectViewer(BaseModalityViewer):
     """Viewer component for project-specific information."""
+
+    MODALITY_NAME = 'projects'
+    MODALITY_LABEL = 'Projects'
 
     def __init__(self, location_id: Optional[int] = None):
         self.location_id = location_id
