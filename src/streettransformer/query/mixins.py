@@ -14,6 +14,8 @@ from ..db.database import get_connection
 from ..db.embedding_db import EmbeddingDB
 from ..query.clip_embedding import CLIPEncoder
 
+from ..image_retrieval.vector_db import VectorDB
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +31,7 @@ class StateMixin:
         year: Year of interest
         target_year: Optional year to search within (None = all years)
     """
-    location_id: int
+    location_id: str
     year: int
     target_years: Optional[list[int]] = None
 
@@ -53,7 +55,7 @@ class ChangeMixin:
         year_to: Ending year
         sequential_only: Whether to only search sequential year pairs
     """
-    location_id: int
+    location_id: str
     year_from: int
     year_to: int
     target_years: Optional[list[int]] = None
@@ -79,11 +81,13 @@ class DatabaseMixin:
 
     Attributes:
         config: Configuration object with database path
-        db: EmbeddingDB instance for vector operations
+        db: EmbeddingDB instance for vector operations (DuckDB-based)
+        vector_db: VectorDB instance for PostgreSQL pgvector operations
         db_connection_func: Factory function for creating connections
     """
     config: STConfig
     db: EmbeddingDB
+    vector_db: VectorDB
     db_connection_func: Optional[Callable] = None
 
     def get_connection(self):
@@ -103,28 +107,18 @@ class DatabaseMixin:
 
 
 class SearchMethodMixin:
-    """Mixin providing different search method strategies.
+    """Mixin providing search method configuration.
 
     Attributes:
-        use_faiss: Whether to use FAISS for approximate search
-        use_whitening: Whether to apply whitening reranking
         limit: Maximum number of results
+        remove_self: Whether to remove query location from results
     """
-    use_faiss: bool = True
-    use_whitening: bool = False
     limit: int = 10
     remove_self: bool = True
 
     def get_search_method_name(self) -> str:
         """Get human-readable search method description."""
-        methods = []
-        if self.use_faiss:
-            methods.append("FAISS")
-        else:
-            methods.append("Database")
-        if self.use_whitening:
-            methods.append("Whitening")
-        return " + ".join(methods)
+        return "PostgreSQL pgvector"
 
 
 class TextQueryMixin:

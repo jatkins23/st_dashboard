@@ -5,22 +5,25 @@
 [X] Documents actually ashow up
 
 ## Features/Functionality
-[ ] !! 4 types of search
+[X]] !! 4 types of search
 [X] Street names
-[ ] Collapse Panels
+[ ] Collapse Panels (Toggle)
+    [ ] Collapse sub-panels (Accordion)
 [ ] Click on locations
 - Text Search
-    [X] Years not needed
+    [X] Years not neededyep
     [ ] !! Implement CLIP
 [ ] Need search to actually show up with the location
 
 ## Design Choices
 [X] Objectify everything
 [ ] Make the logger actually useful to me
+[ ] Break search functions up into helper functions
 
 ## Backend
 [ ] !! Connect the PGvector backend
 [X] Borough integration
+[X] need to dynamically retrieve documents when there are too many
 
 ## Styling
 [X] Switch to DMC
@@ -35,6 +38,22 @@
     [ ] Put Borough somewhere in the Location Detail
     [ ] Better way to display street names
     [ ] Header color, more change.
+    [X] Switch to tabs
+    [X] Document Cache
+    [ ] Split Documents by type
+
+## Adding back in Search Options
+[ ] use_whitening, use_faiss added to SearchMethodMixin
+    [ ] add to QueryMetaData
+
+
+## VectorDB Refactor
+[ ] Rename media columns for consistency
+[ ] EmbeddingDB to just like DuckDB or something
+[ ] Integrate with QueryInstance and QueryResult functions
+[ ] the location_key, location fiasco
+[ ] split query functions into different parts that reference each db? I think this makes sense
+[ ] I think configs need to be unified. And I need someway for a query to refer to a PG_Config
 
 
 # Preprocessing
@@ -46,7 +65,7 @@
     [X] Re-add to `location_year_files`? Turn this into a view?
 [X] Rebuild the views
 [X] Change to `core2.ddb` from `core.ddb`
-[X] Need to convert documxents to images? No, we don't!
+[X] Need to convert documents to images? No, we don't!
 [ ] **All paths need to exclude ~** 
 
 

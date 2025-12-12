@@ -108,6 +108,8 @@ def initialize_vector_db(pg_config):
             logger.error("Cannot initialize VectorDB: connection pool not initialized")
             return False
 
+        logger.info(f"Creating VectorDB with config: host={pg_config.db_host}, db={pg_config.db_name}, dim={pg_config.vector_dimension}")
+
         # VectorDB will use connection from pool
         VECTOR_DB = VectorDB(
             vector_dimension=pg_config.vector_dimension,
@@ -117,13 +119,18 @@ def initialize_vector_db(pg_config):
             host=pg_config.db_host,
             port=pg_config.db_port
         )
-        logger.info("VectorDB instance initialized")
+
+        logger.info(f"VectorDB instance initialized successfully: {type(VECTOR_DB)}")
         return True
     except ImportError as e:
         logger.error(f"Failed to import VectorDB: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
     except Exception as e:
         logger.error(f"Failed to initialize VectorDB: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 

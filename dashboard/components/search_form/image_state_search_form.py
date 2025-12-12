@@ -58,7 +58,7 @@ class ImageStateSearchForm(BaseSearchForm):
             ),
         ]
 
-    def execute_search(self, state, location_id, year, target_year, limit, media_type, use_faiss:bool, use_whitening:bool, boroughs=None, **kwargs):
+    def execute_search(self, state, location_id, year, target_year, limit, media_type, boroughs=None, **kwargs):
         """Execute state search (image-to-image by year).
 
         Args:
@@ -83,13 +83,12 @@ class ImageStateSearchForm(BaseSearchForm):
         query = ImageToImageStateQuery(
             config=state.CONFIG,
             db=state.DB,
+            vector_db=state.VECTOR_DB,
             location_id=location_id,
             year=year,
             target_years=[target_year] if target_year else None,
             limit=limit,
             media_types=[selected_media_type],
-            use_faiss=use_faiss,
-            use_whitening=use_whitening,
             remove_self=True
         )
 

@@ -42,18 +42,20 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
 
     # PostgreSQL vector search arguments
-    parser.add_argument('--pg-host', type=str, default=os.getenv('PGHOST', 'localhost'),
-                        help='PostgreSQL host (default: PGHOST env var or localhost)')
+    from dotenv import load_dotenv
+    load_dotenv()
+    parser.add_argument('--pg-host', type=str, default=os.getenv('PG_HOST', 'localhost'),
+                        help='PostgreSQL host (default: PG_HOST env var or localhost)')
     parser.add_argument('--pg-port', type=int, default=int(os.getenv('PGPORT', '5432')),
-                        help='PostgreSQL port (default: PGPORT env var or 5432)')
-    parser.add_argument('--pg-db', type=str, default=os.getenv('PGDATABASE', 'image_retrieval'),
-                        help='PostgreSQL database name (default: PGDATABASE env var or image_retrieval)')
-    parser.add_argument('--pg-user', type=str, default=os.getenv('PGUSER', 'postgres'),
-                        help='PostgreSQL user (default: PGUSER env var or postgres)')
-    parser.add_argument('--pg-password', type=str, default=os.getenv('PGPASSWORD', ''),
-                        help='PostgreSQL password (default: PGPASSWORD env var or empty)')
-    parser.add_argument('--enable-vector-search', action='store_true',
-                        help='Enable PostgreSQL vector search (default: disabled)')
+                        help='PostgreSQL port (default: PG_PORT env var or 5432)')
+    parser.add_argument('--pg-db', type=str, default=os.getenv('PG_DATABASE', 'image_retrieval'),
+                        help='PostgreSQL database name (default: PG_DATABASE env var or image_retrieval)')
+    parser.add_argument('--pg-user', type=str, default=os.getenv('PG_USER', 'postgres'),
+                        help='PostgreSQL user (default: PG_USER env var or postgres)')
+    parser.add_argument('--pg-password', type=str, default=os.getenv('PG_PASSWORD', ''),
+                        help='PostgreSQL password (default: PG_PASSWORD env var or empty)')
+    parser.add_argument('--enable-vector-search', action='store_true', default=True,
+                        help='Enable PostgreSQL vector search (default: enabled)')
     parser.add_argument('--vector-dim', type=int, default=512,
                         help='Vector dimension (default: 512 for CLIP ViT-B-32)')
 

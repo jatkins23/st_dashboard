@@ -180,13 +180,11 @@ class Dashboard(BaseComponent):
                 State('state-search-form--target-year-selector', 'value'),
                 State('state-search-form--limit-dropdown', 'value'),
                 State('state-search-form--media-type-selector', 'value'),
-                State('state-search-form--use-faiss-checkbox', 'value'),
-                State('state-search-form--use-whitening-checkbox', 'value'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
-            def handle_image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
-                return self.image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab)
+            def handle_image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, active_tab):
+                return self.image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, active_tab)
 
         # Register IMAGE CHANGE search callback
         if self.enable_image_search:
@@ -203,13 +201,11 @@ class Dashboard(BaseComponent):
                 State('change-search-form--limit-dropdown', 'value'),
                 State('change-search-form--media-type-selector', 'value'),
                 State('change-search-form--sequential-checkbox', 'value'),
-                State('change-search-form--use-faiss-checkbox', 'value'),
-                State('change-search-form--use-whitening-checkbox', 'value'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
-            def handle_image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab):
-                return self.image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab)
+            def handle_image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, active_tab):
+                return self.image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, active_tab)
 
         # Register TEXT STATE search callback
         if self.enable_text_search:
@@ -423,13 +419,14 @@ class Dashboard(BaseComponent):
 
 
     # ------- Search handlers  ------- #
-    def image_state_search(self, n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
+    def image_state_search(self, n_clicks, location_id, boroughs, year, target_year, limit, media_type, active_tab):
         from .. import state as app_state
 
         """Handle state search (image-to-image by year)."""
         # Only process if state tab is active
-        if active_tab != 'image-state':
-            return dbc.Alert("Please switch to State Search tab", color='warning'), {'display': 'block'}, [], None
+        print(f'active_tab: {active_tab}')
+        # if active_tab != 'image-state':
+        #     return dbc.Alert("Please switch to State Search tab", color='warning'), {'display': 'block'}, [], None
 
         if not location_id or not year:
             return (
@@ -447,9 +444,7 @@ class Dashboard(BaseComponent):
                 year=year,
                 target_year=target_year,
                 limit=limit,
-                media_type=media_type,
-                use_faiss=use_faiss,
-                use_whitening=use_whitening,
+                media_type=media_type
             )
 
             if len(results_set) == 0:
@@ -480,7 +475,7 @@ class Dashboard(BaseComponent):
                 None
             )
         
-    def image_change_search(self, n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, active_tab, use_faiss, use_whitening):
+    def image_change_search(self, n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, active_tab):
         """Handle change search (temporal change detection)."""
         from .. import state as app_state
 
@@ -508,9 +503,7 @@ class Dashboard(BaseComponent):
                 year_to=year_to,
                 limit=limit,
                 media_type=media_type,
-                sequential=sequential,
-                use_faiss=use_faiss,
-                use_whitening=use_whitening
+                sequential=sequential
             )
 
             if len(results_set) == 0:

@@ -70,7 +70,7 @@ class ImageChangeSearchForm(BaseSearchForm):
             ),
         ]
 
-    def execute_search(self, state, location_id, year_from, year_to, limit, media_type, sequential, use_faiss: bool, use_whitening: bool, boroughs=None, **kwargs):
+    def execute_search(self, state, location_id, year_from, year_to, limit, media_type, sequential, boroughs=None, **kwargs):
         """Execute change search (temporal change detection).
 
         Args:
@@ -96,14 +96,13 @@ class ImageChangeSearchForm(BaseSearchForm):
         query = ImageToImageChangeQuery(
             config=state.CONFIG,
             db=state.DB,
+            vector_db=state.VECTOR_DB,
             location_id=location_id,
             year_from=year_from,
             year_to=year_to,
             limit=limit,
             media_types=[selected_media_type],
             sequential=sequential,
-            use_faiss=use_faiss,
-            use_whitening=use_whitening,
             remove_self=True
         )
 

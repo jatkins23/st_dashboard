@@ -17,8 +17,6 @@ from .metadata import QueryMetadata
 # from ... import WhiteningTransform
 
 class BaseQuery(DatabaseMixin, SearchMethodMixin, BaseModel):
-    # use_faiss: bool = True
-    # use_whitening: bool = False
     distance_metric: str = 'cosine'
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -47,7 +45,7 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
         metadata = QueryMetadata(
             query_type = __class__.__qualname__,
             execution_time_ms = elapsed_time * 1000,
-            search_method = "faiss" if self.use_faiss else "duckdb_vss"
+            search_method = self.get_search_method_name()
         )
 
         return StateResultsSet(
@@ -87,20 +85,55 @@ class ImageToImageStateQuery(BaseQuery, StateMixin):
 
         query_vec = np.array(query_df.iloc[0]['embedding'])
 
-        # if self.use_faiss:
-        #     indexer = FAISSIndexer(self.config)
-        #     results = indexer.search(
-        #         query_vector=query_vec,
-        #         k = self.limit * 2, # See below for why 2
-        #         year = self.target_years[0] if self.target_years else self.year # TODO: fix years to be a list . Also this should search all years!
-        #     )
+        # Determine target year for search
+        target_year = self.target_years[0] if self.target_years else None
 
-        #     # Filter results by media_type if FAISS index contains multiple types
-        #     if 'media_type' in results.columns:
-        #         results = results[results['media_type'].isin(media_types)]
+        # Use pgvector for similarity search
+        search_hits = self.vector_db.search_similar(
+            query_embedding=query_vec,
+            top_k=self.limit * 2 if self.remove_self else self.limit,
+            year=target_year,
+            return_metadata=True
+        )
+
+        # Convert SearchHit objects to DataFrame
+        results = pd.DataFrame([
+            {
+                'location_key': hit.location_key,
+                'year': hit.year,
+                'path': hit.image_path,
+                'similarity': hit.similarity,
+                'media_type': 'image'  # pgvector only stores images
+            }
+            for hit in search_hits
+        ])
+        
+        print(results)
+
+        # Get location_id from location_key by joining with locations table
+        if not results.empty:
+            results_with_id = self.execute_query(f"""
+                SELECT
+                    r.location_key,
+                    l.location_id,
+                    r.year,
+                    r.path as image_path,
+                    r.similarity,
+                    r.media_type
+                FROM (
+                    SELECT * FROM (VALUES
+                        {', '.join(f"('{row.location_key}', {row.year}, '{row.path}', {row.similarity}, '{row.media_type}')"
+                                  for row in results.itertuples())}
+                    ) AS t(location_key, year, path, similarity, media_type)
+                ) r
+                LEFT JOIN {self.get_universe_table('locations')} l
+                    ON r.location_key = l.location_id
+            """)
+            results = results_with_id
+            print(results)
 
         # Remove self from results
-        if self.remove_self:
+        if self.remove_self and not results.empty:
             results = results[results['location_id'] != self.location_id]
         results = results.head(self.limit)
 
@@ -169,26 +202,48 @@ class ImageToImageChangeQuery(BaseQuery, ChangeMixin):
         vec_to = np.array(emb_to.iloc[0]['embedding'])
         query_delta = vec_to - vec_from
 
-        # Normalize 
+        # Normalize
         norm = np.linalg.norm(query_delta)
         if norm > 0:
             query_delta = query_delta / norm
 
-        # Search for similar changes
-        results = self.db.search_change_vectors(
+        # Search for similar changes using pgvector
+        change_results = self.vector_db.search_change_vectors(
             query_delta=query_delta,
-            #limit=self.limit + 1, # TODO: This could be a problem. It adds one to account for self but if there is more than one instance of self (in multiple years), that could be a sneaky error
-                                # Can actually just grab more if we want and get rid of them later
-            limit = self.limit * 2,  # Multiplying by two for safety
-            year_from = self.year_from,
-            year_to = self.year_to
-            # TODO: target years and sequential??
+            top_k=self.limit * 2,  # Multiplying by two for safety (to account for self-removal)
+            year_from=self.year_from,
+            year_to=self.year_to
         )
 
-        if self.remove_self:
+        # Convert list of dicts to DataFrame
+        results = pd.DataFrame(change_results)
+
+        # Get location_id by joining with locations table on location_key
+        if not results.empty:
+            results_with_id = self.execute_query(f"""
+                SELECT
+                    r.location_key,
+                    l.location_id,
+                    r.year_from as before_year,
+                    r.year_to as after_year,
+                    r.path_from as before_path,
+                    r.path_to as after_year,
+                    r.similarity
+                FROM (
+                    SELECT * FROM (VALUES
+                        {', '.join(f"('{row.location_key}', {row.year_from}, {row.year_to}, '{row.path_from}', '{row.path_to}', {row.similarity})"
+                                  for row in results.itertuples())}
+                    ) AS t(location_key, year_from, year_to, path_from, path_to, similarity)
+                ) r
+                LEFT JOIN {self.get_universe_table('locations')} l
+                    ON r.location_key = l.location_id
+            """)
+            results = results_with_id
+
+        if self.remove_self and not results.empty:
             results = results[results['location_id'] != self.location_id]
-            results = results.head(self.limit) #
-        
+            results = results.head(self.limit)
+
         return results
 
 
@@ -212,30 +267,30 @@ class TextToImageStateQuery(TextQueryMixin, BaseQuery):
         print(query_embedding)
         
         # Search using FAISS if requested
-        if self.use_faiss:
-            indexer = FAISSIndexer(self.config)
-            results = indexer.search(
-                query_vector=query_embedding,
-                k=self.limit,
-                year= 2018 # TODO: remvoe year from FAISSIndexer
-            )
-        else:
+        # if self.use_faiss:
+        #     indexer = FAISSIndexer(self.config)
+        #     results = indexer.search(
+        #         query_vector=query_embedding,
+        #         k=self.limit,
+        #         year= 2018 # TODO: remvoe year from FAISSIndexer
+        #     )
+        # else:
             # Use database search
-            results = self.db.search_similar(
-                query_vector=query_embedding,
-                limit=self.limit,
-                year=self.year
-            )
+        results = self.db.search_similar(
+            query_vector=query_embedding,
+            limit=self.limit,
+            year=self.year
+        )
 
         # Apply Whitening reranking
-        if self.use_whitening and not results.empty:
-            whiten = WhiteningTransform(self.config)
-            results = whiten.rerank_results(
-                query_vector=query_embedding,
-                results=results,
-                year=self.target_years[0] if self.target_years else None,
-                top_k = self.limit
-            )
+        # if self.use_whitening and not results.empty:
+        #     whiten = WhiteningTransform(self.config)
+        #     results = whiten.rerank_results(
+        #         query_vector=query_embedding,
+        #         results=results,
+        #         year=self.target_years[0] if self.target_years else None,
+        #         top_k = self.limit
+        #     )
 
         return results
 
@@ -249,6 +304,6 @@ class TextToImageStateQuery(TextQueryMixin, BaseQuery):
         """
         text_hash = hashlib.md5(self.text_query.encode()).hexdigest()[:8]
         year_str = f"y[{'_'.join(self.target_years)}]" if self.year else "all_years"
-        method = "f" if self.use_faiss else "d"
-        method += "w" if self.use_whitening else ""
+        # method = "f" if self.use_faiss else "d"
+        # method += "w" if self.use_whitening else ""
         return f"text_{text_hash}_{year_str}_{method}_n{self.limit}"

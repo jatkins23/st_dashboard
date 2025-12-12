@@ -63,10 +63,6 @@ class TextChangeSearchForm(BaseSearchForm):
         from streettransformer.db.database import get_connection
         from streettransformer.query.queries.ask import TextToImageChangeQuery
 
-        # Configuration settings
-        use_faiss_enabled = True
-        use_whitening_enabled = False
-
         # Default to 'image' if no media type selected
         selected_media_type = media_type if media_type else 'image'
 
@@ -78,8 +74,6 @@ class TextChangeSearchForm(BaseSearchForm):
             limit=limit,
             media_types=[selected_media_type],
             sequential=sequential,
-            use_faiss=use_faiss_enabled,
-            use_whitening=use_whitening_enabled
         )
 
         results_set = query.search()

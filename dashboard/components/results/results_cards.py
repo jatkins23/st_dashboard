@@ -16,6 +16,7 @@ class ResultsStateCard(BaseResultsCard):
         
     @property
     def _media_content(self):
+        print(self.__dict__)
         if self.image_path.exists():
             img_base64 = encode_image_to_base64(self.image_path)
             if img_base64:

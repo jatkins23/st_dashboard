@@ -73,7 +73,7 @@ def _add_project_trace(fig: go.Figure, df: pd.DataFrame, name: str, color: str,
 
 
 def create_location_map(projects_df: pd.DataFrame,
-                        selected_location_id: int = None,
+                        selected_location_id: str = None,
                         result_location_ids: list = None,
                         center_lat: float = 40.7128,
                         center_lon: float = -74.0060,
@@ -317,7 +317,7 @@ def load_all_boroughs(config, db_connection_func) -> list:
         return []
 
 
-def get_location_details(config, db_connection_func, location_id: int) -> dict:
+def get_location_details(config, db_connection_func, location_id: str) -> dict:
     """Get detailed information about a specific location.
 
     Args:

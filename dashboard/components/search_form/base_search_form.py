@@ -109,41 +109,6 @@ class BaseSearchForm(BaseComponent):
             size="sm"
         )
 
-    def _method_selector(self, options: list = None) -> list:
-        """FAISS/Whitening checkboxes (common to most).
-
-        Args:
-            options: List of options to include. Defaults to ['faiss', 'whitening']
-
-        Returns:
-            List of components (label + checkboxes)
-        """
-        options = options or ['faiss', 'whitening']
-        if not options:
-            return []
-
-        components = []
-
-        if 'faiss' in options:
-            components.append(
-                dmc.Switch(
-                    id=self.Id('use-faiss-checkbox'),
-                    label='FAISS',
-                    checked=True,
-                    size="sm"
-                )
-            )
-        if 'whitening' in options:
-            components.append(
-                dmc.Switch(
-                    id=self.Id('use-whitening-checkbox'),
-                    label='Whitening',
-                    checked=False,
-                    size="sm"
-                )
-            )
-
-        return components
 
     def _search_button(self) -> DashComponent:
         """Search button (common to all)."""
@@ -256,15 +221,6 @@ class BaseSearchForm(BaseComponent):
                 dmc.Stack([
                     dmc.Text("Media Type", size="sm", fw=500),
                     self._media_selector()
-                ], gap="xs"),
-                span=2
-            ),
-
-            # Options (FAISS/Whitening switches)
-            dmc.GridCol(
-                dmc.Stack([
-                    dmc.Text("Options", size="sm", fw=500),
-                    *self._method_selector()
                 ], gap="xs"),
                 span=2
             ),

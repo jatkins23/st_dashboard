@@ -67,10 +67,6 @@ class TextStateSearchForm(BaseSearchForm):
         from streettransformer.db.database import get_connection
         from streettransformer.query.queries.ask import TextToImageStateQuery
 
-        # Configuration settings
-        use_faiss_enabled = True
-        use_whitening_enabled = False
-
         # Default to 'image' if no media type selected
         selected_media_type = media_type if media_type else 'image'
 
@@ -81,9 +77,7 @@ class TextStateSearchForm(BaseSearchForm):
             text=text,
             target_years=[target_year] if target_year else None,
             limit=limit,
-            media_types=[selected_media_type],
-            use_faiss=use_faiss_enabled,
-            use_whitening=use_whitening_enabled
+            media_types=[selected_media_type]
         )
 
         results_set = query.search()

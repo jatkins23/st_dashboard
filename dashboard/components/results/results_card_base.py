@@ -80,10 +80,9 @@ class BaseResultsCard(BaseComponent):
         # Image/s
         content.extend(self._media_content)
 
-        return dmc.AccordionItem(
-            html.Div(content),
-            value=self.Id('item'),
-            children=title
-        )
+        return dmc.AccordionItem([
+            dmc.AccordionControl(title),
+            dmc.AccordionPanel(html.Div(content))
+        ], value=self.Id('item'))
 
 

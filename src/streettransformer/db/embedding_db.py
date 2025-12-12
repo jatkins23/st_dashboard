@@ -32,7 +32,7 @@ class MediaEmbedding:
         embedding: Embedding vector
         stats: Optional statistics (e.g., mask statistics)
     """
-    location_id: int
+    location_id: str
     location_key: str
     year: int
     media_type: str

@@ -32,12 +32,12 @@ class QueryResultsSet(BaseModel):
         return len(self.results)
     
 class StateResultsSet(QueryResultsSet):
-    query_location_id: int
+    query_location_id: str
     query_year: int
     target_years: Optional[list[int]]=None
 
 class ChangeResultsSet(QueryResultsSet):
-    query_location_id: int
+    query_location_id: str
     query_year_from: int
     query_year_to: int
     target_years: Optional[list[int]]=None

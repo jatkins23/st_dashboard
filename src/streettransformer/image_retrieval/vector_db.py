@@ -44,7 +44,7 @@ class ImageEmbedding:
     year: int
     embedding: Sequence[float]
     location_key: str #this is the immutable key to create hash
-    location_id: int #this is our persistent location_id to be joined with the base intersections
+    location_id: str #this is our persistent location_id to be joined with the base intersections
     mask_path: Optional[str] = None
     mask_embedding: Optional[Sequence[float]] = None
     fusion_embedding: Optional[Sequence[float]] = None
@@ -800,6 +800,113 @@ class VectorDB:
         if return_metadata:
             return hits
         return [(hit.image_path, hit.distance) for hit in hits]
+
+    def search_change_vectors(
+        self,
+        query_delta: Sequence[float],
+        top_k: int = 10,
+        *,
+        year_from: Optional[int] = None,
+        year_to: Optional[int] = None,
+        column: str = "embedding",
+    ) -> List[Dict]:
+        """
+        Search for similar change vectors (temporal deltas between year pairs).
+
+        Args:
+            query_delta: Normalized delta vector (vec_to - vec_from)
+            top_k: Number of results to return
+            year_from: Filter results to changes starting from this year
+            year_to: Filter results to changes ending at this year
+            column: Which embedding column to use
+
+        Returns:
+            List of dictionaries with location_key, year_from, year_to, similarity
+        """
+        self.connect()
+        q = _normalize_vector(query_delta)
+
+        column_key = column.lower()
+        column_map = {
+            "embedding": "embedding",
+            "image": "embedding",
+            "mask": "mask_embedding",
+            "mask_embedding": "mask_embedding",
+            "fusion": "fusion_embedding",
+            "fusion_embedding": "fusion_embedding",
+            "mask_image": "mask_image_embedding",
+            "mask_image_embedding": "mask_image_embedding",
+        }
+        if column_key not in column_map:
+            raise ValueError(f"Unsupported column '{column}' for search")
+        col_sql = column_map[column_key]
+
+        filters: List[str] = []
+        filter_params: List[object] = []
+
+        if year_from is not None:
+            filters.append("e1.year = %s")
+            filter_params.append(int(year_from))
+        if year_to is not None:
+            filters.append("e2.year = %s")
+            filter_params.append(int(year_to))
+        if col_sql != "embedding":
+            filters.append(f"e1.{col_sql} IS NOT NULL")
+            filters.append(f"e2.{col_sql} IS NOT NULL")
+
+        where_sql = f"WHERE {' AND '.join(filters)}" if filters else ""
+
+        # Compute normalized delta for each location and year pair, then find similar deltas
+        sql = f"""
+            WITH deltas AS (
+                SELECT
+                    e2.{self._location_column} AS location_key,
+                    e1.year AS year_from,
+                    e2.year AS year_to,
+                    e1.image_path AS image_path_from,
+                    e2.image_path AS image_path_to,
+                    (e2.{col_sql} - e1.{col_sql}) /
+                        NULLIF(sqrt((e2.{col_sql} - e1.{col_sql}) <#> (e2.{col_sql} - e1.{col_sql})), 0) AS delta
+                FROM image_embeddings e1
+                JOIN image_embeddings e2
+                    ON e1.{self._location_column} = e2.{self._location_column}
+                    AND e1.year < e2.year
+                {where_sql}
+            )
+            SELECT
+                location_key,
+                year_from,
+                year_to,
+                image_path_from,
+                image_path_to,
+                1.0 - (delta <=> %s::vector) AS similarity
+            FROM deltas
+            WHERE delta IS NOT NULL
+            ORDER BY delta <=> %s::vector ASC
+            LIMIT %s;
+        """
+
+        params_ordered: List[object] = []
+        params_ordered.extend(filter_params)
+        params_ordered.append(q)
+        params_ordered.append(q)
+        params_ordered.append(int(top_k))
+
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params_ordered)
+            rows = cur.fetchall()
+
+        results: List[Dict] = []
+        for row in rows:
+            results.append({
+                'location_key': row[0],
+                'year_from': int(row[1]),
+                'year_to': int(row[2]),
+                'path_from': row[3],
+                'path_to': row[4],
+                'similarity': float(row[5])
+            })
+        return results
 
     def _search(
         self,

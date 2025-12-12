@@ -40,6 +40,8 @@ class PGConfig:
     vector_dimension: int = 512  # Default CLIP ViT-B-32 dimension
     # Field mapping: PostgreSQL field name that maps to DuckDB's location_id
     pg_location_id_field: str = "location_key"  # Currently location_key in PG = location_id in DuckDB
+    
+    
 
 # Feature Flags
 @dataclass
