@@ -11,6 +11,7 @@ from streettransformer.db.database import get_connection
 from ... import state
 from ...utils.display import encode_pdf_to_base64
 from ...utils.document_cache import DocumentImgCache
+from .base_modality_viewer import BaseModalityViewer
 
 import os
 
@@ -27,8 +28,11 @@ def get_document_cache() -> DocumentImgCache:
     return _document_cache
 
 
-class DetailsDocumentViewer:
+class DetailsDocumentViewer(BaseModalityViewer):
     """Viewer component for location documents with caching and pagination."""
+
+    MODALITY_NAME = 'documents'
+    MODALITY_LABEL = 'Documents'
 
     def __init__(self, location_id: Optional[int] = None, page_size: int = 10):
         """Initialize document viewer.

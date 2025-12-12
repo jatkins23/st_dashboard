@@ -7,10 +7,14 @@ import pandas as pd
 from typing import Optional, Tuple, List
 
 from ...utils.display import encode_image_to_base64
+from .base_modality_viewer import BaseModalityViewer
 
 
-class DetailsImageViewer:
+class DetailsImageViewer(BaseModalityViewer):
     """Viewer component for location image carousel."""
+
+    MODALITY_NAME = 'images'
+    MODALITY_LABEL = 'Images'
 
     def __init__(self, images_df: Optional[pd.DataFrame] = None, query_year: Optional[int] = None):
         self.images_df = images_df
