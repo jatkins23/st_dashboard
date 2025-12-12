@@ -6,6 +6,7 @@ from pathlib import Path
 from PIL import Image
 from io import BytesIO
 import base64
+from typing import Optional
 
 NO_STREETS: bool = True
 ADDTNL_STREETS: bool = True
@@ -46,13 +47,14 @@ def encode_image_to_base64(image_path: Path, max_width: int = 400) -> str:
         return None
 
 
-def encode_pdf_to_base64(pdf_path: Path, page_num: int = 0, max_width: int = 400) -> str:
+def encode_pdf_to_base64(pdf_path: Path, page_num: int = 0, max_width: int = 400, cache: Optional['DocumentImgCache'] = None) -> str:
     """Convert PDF page to base64 string for embedding in HTML.
 
     Args:
         pdf_path: Path to PDF file
         page_num: Page number to convert (0-indexed)
         max_width: Maximum width for resizing
+        cache: Optional DocumentImgCache instance for caching
 
     Returns:
         Base64 encoded image string
@@ -60,6 +62,12 @@ def encode_pdf_to_base64(pdf_path: Path, page_num: int = 0, max_width: int = 400
     try:
         if not pdf_path.exists():
             return None
+
+        # Check cache first
+        if cache is not None:
+            cached = cache.get(pdf_path, max_width)
+            if cached is not None:
+                return cached
 
         import fitz  # PyMuPDF
 
@@ -91,7 +99,13 @@ def encode_pdf_to_base64(pdf_path: Path, page_num: int = 0, max_width: int = 400
         img.save(buffer, format='PNG')
         img_str = base64.b64encode(buffer.getvalue()).decode()
 
-        return f"data:image/png;base64,{img_str}"
+        result = f"data:image/png;base64,{img_str}"
+
+        # Save to cache
+        if cache is not None:
+            cache.set(pdf_path, max_width, result)
+
+        return result
     except ImportError:
         logger.error(f"PyMuPDF (fitz) not installed. Install with: pip install pymupdf")
         return None
