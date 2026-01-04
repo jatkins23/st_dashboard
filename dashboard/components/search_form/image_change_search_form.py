@@ -6,6 +6,7 @@ import dash_mantine_components as dmc
 from .base_search_form import BaseSearchForm
 from .utils import filter_street_options_by_selection
 from ... import state
+from streettransformer.query.queries.ask import ImageToImageChangeQuery
 
 import logging
 logger = logging.getLogger(__name__)
@@ -22,6 +23,11 @@ class ImageChangeSearchForm(BaseSearchForm):
     - Limit, media type, and search options
     - Search button
     """
+
+    SEARCH_TYPE = 'change-similarity'
+    TAB_LABEL = 'Change Similarity'
+    QUERY_CLASS = ImageToImageChangeQuery
+    RESULT_TYPE = 'change'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
         """Initialize the change search form.

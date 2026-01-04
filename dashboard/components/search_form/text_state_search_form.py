@@ -5,6 +5,7 @@ import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
 from ... import state
+from streettransformer.query.queries.ask import TextToImageStateQuery
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,6 +20,11 @@ class TextStateSearchForm(BaseSearchForm):
     - Limit, media type, and search options
     - Search button
     """
+
+    SEARCH_TYPE = 'state-description'
+    TAB_LABEL = 'State Description'
+    QUERY_CLASS = TextToImageStateQuery
+    RESULT_TYPE = 'state'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
         """Initialize the state text search form.

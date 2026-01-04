@@ -1,6 +1,7 @@
 """Base search form with common elements shared across all search types."""
 
 from abc import abstractmethod
+from typing import Type
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
@@ -10,13 +11,39 @@ from ..base import BaseComponent
 
 
 class BaseSearchForm(BaseComponent):
-    """Base search form with common UI elements.
+    """Base search form with auto-registration capability.
 
-    Subclasses override:
-    - _query_inputs() to provide search-specific inputs (year, text, etc.)
-    - execute_search() to implement the search logic
-    - register_callbacks() for search-specific callbacks (e.g., street filtering)
+    Subclasses must define:
+    - SEARCH_TYPE: Unique identifier (e.g., 'state-similarity')
+    - TAB_LABEL: Display label (e.g., 'State Similarity')
+    - QUERY_CLASS: Backend query class
+    - RESULT_TYPE: 'state' or 'change'
+    - _query_inputs(): Search-specific UI inputs
+    - execute_search(): Search logic
+    - register_callbacks(): Form-specific callbacks
     """
+
+    # Subclasses MUST define these for auto-registration
+    SEARCH_TYPE: str = None
+    TAB_LABEL: str = None
+    QUERY_CLASS: Type = None
+    RESULT_TYPE: str = None
+
+    def __init_subclass__(cls, **kwargs):
+        """Auto-register subclasses when they're defined."""
+        super().__init_subclass__(**kwargs)
+
+        # Only register if all required attributes are defined
+        if all([cls.SEARCH_TYPE, cls.TAB_LABEL, cls.QUERY_CLASS, cls.RESULT_TYPE]):
+            from .registry import SearchFormRegistry
+
+            SearchFormRegistry.register(
+                search_type=cls.SEARCH_TYPE,
+                label=cls.TAB_LABEL,
+                form_class=cls,
+                query_class=cls.QUERY_CLASS,
+                result_type=cls.RESULT_TYPE
+            )
 
     def __init__(self, available_years: list, all_streets: list,
                  all_boroughs: list = None, id_prefix: str = None, title: str = None):

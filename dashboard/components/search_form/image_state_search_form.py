@@ -6,6 +6,7 @@ import dash_mantine_components as dmc
 from .base_search_form import BaseSearchForm
 from .utils import filter_street_options_by_selection
 from ... import state
+from streettransformer.query.queries.ask import ImageToImageStateQuery
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,6 +22,11 @@ class ImageStateSearchForm(BaseSearchForm):
     - Limit, media type, and search options
     - Search button
     """
+
+    SEARCH_TYPE = 'state-similarity'
+    TAB_LABEL = 'State Similarity'
+    QUERY_CLASS = ImageToImageStateQuery
+    RESULT_TYPE = 'state'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
         """Initialize the state search form.
@@ -148,9 +154,9 @@ class ImageStateSearchForm(BaseSearchForm):
             return result
 
         @app.callback(
-            Output('selected-location-id', 'data'),
+            Output('selected-location-id', 'data', allow_duplicate=True),
             Input(self.Id('street-selector'), 'value'),
-            prevent_initial_call=False
+            prevent_initial_call='initial_duplicate'
         )
         def update_selected_location_state(selected_streets):
             """Convert selected streets to location_id."""

@@ -69,11 +69,15 @@ class DetailsPanel(BaseComponent):
             Input('selected-location-id', 'data'),
             Input('main-map', 'clickData'),
             Input('active-search-tab', 'data'),
-            Input('state-query-params', 'data'),
-            Input('change-query-params', 'data'),
+            Input('state-similarity-query-params', 'data'),
+            Input('state-description-query-params', 'data'),
+            Input('change-similarity-query-params', 'data'),
+            Input('change-description-query-params', 'data'),
             prevent_initial_call=False
         )
-        def update_details(selected_location_id, click_data, active_tab, state_params, change_params):
+        def update_details(selected_location_id, click_data, active_tab,
+                          state_similarity_params, state_description_params,
+                          change_similarity_params, change_description_params):
             """Update all detail tabs when location is selected."""
             location_id = None
 
@@ -131,10 +135,14 @@ class DetailsPanel(BaseComponent):
 
                     # Get query year based on active tab
                     query_year = None
-                    if active_tab == 'change':
-                        query_year = change_params.get('year_from') if change_params else None
+                    if active_tab and 'change' in active_tab:
+                        # Try change-similarity first, then change-description
+                        params = change_similarity_params or change_description_params
+                        query_year = params.get('year_from') if params else None
                     else:
-                        query_year = state_params.get('year') if state_params else None
+                        # Try state-similarity first, then state-description
+                        params = state_similarity_params or state_description_params
+                        query_year = params.get('year') if params else None
 
                     # Create stats viewer (always visible)
                     stats_viewer = DetailsStatsViewer(location_id=location_id, street_name=street_name)

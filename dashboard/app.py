@@ -112,7 +112,10 @@ def main():
         __name__,
         suppress_callback_exceptions=True,
         external_stylesheets=[dbc.themes.DARKLY],
-        assets_folder=str(assets_folder)
+        assets_folder=str(assets_folder),
+        #dev_tools_hot_reload=True,
+        #dev_tools_ui=True,
+        #dev_tools_props_check=False  # Disable prop validation for faster dev
     )
 
     # Create dashboard (which creates all component instances internally)
@@ -123,7 +126,11 @@ def main():
         all_boroughs=all_boroughs
     )
 
-    app.layout = dashboard.layout
+    # Set layout as a function to enable hot reloading
+    def serve_layout():
+        return dashboard.layout
+
+    app.layout = serve_layout
 
     # Register all component callbacks
     dashboard.register_callbacks(app)

@@ -57,26 +57,31 @@ class Map(BaseComponent):
             Output('main-map', 'figure'),
             Input('active-search-tab', 'data'),
             Input('selected-location-id', 'data'),
-            Input('state-result-locations', 'data'),
-            Input('change-result-locations', 'data'),
-            Input('text-state-result-locations', 'data'),
-            Input('text-change-result-locations', 'data'),
+            Input('state-similarity-result-locations', 'data'),
+            Input('state-description-result-locations', 'data'),
+            Input('change-similarity-result-locations', 'data'),
+            Input('change-description-result-locations', 'data'),
+            Input('dissimilarity-result-locations', 'data'),
             prevent_initial_call=False
         )
-        def update_map(active_tab, selected_location_id, image_state_results,
-                      image_change_results, text_state_results, text_change_results):
+        def update_map(active_tab, selected_location_id,
+                      state_similarity_results, state_description_results,
+                      change_similarity_results, change_description_results,
+                      dissimilarity_results):
             """Update map with selected location and results from active tab."""
             # Use results from the active tab
             result_location_ids = []
 
-            if active_tab == 'image-state':
-                result_location_ids = image_state_results or []
-            elif active_tab == 'image-change':
-                result_location_ids = image_change_results or []
-            elif active_tab == 'text-state':
-                result_location_ids = text_state_results or []
-            elif active_tab == 'text-change':
-                result_location_ids = text_change_results or []
+            if active_tab == 'state-similarity':
+                result_location_ids = state_similarity_results or []
+            elif active_tab == 'state-description':
+                result_location_ids = state_description_results or []
+            elif active_tab == 'change-similarity':
+                result_location_ids = change_similarity_results or []
+            elif active_tab == 'change-description':
+                result_location_ids = change_description_results or []
+            elif active_tab == 'dissimilarity':
+                result_location_ids = dissimilarity_results or []
 
             fig = create_location_map(
                 projects_df=state.PROJECTS_DF,

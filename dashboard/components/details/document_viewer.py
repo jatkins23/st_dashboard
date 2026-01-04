@@ -93,7 +93,7 @@ class DetailsDocumentViewer(BaseModalityViewer):
         logger.info(f"Loading documents {start_idx} to {actual_end} (of {len(self.documents_df)} total)")
 
         for idx, doc_row in enumerate(paginated_docs.itertuples(), start=start_idx):
-            doc_path = (DATA_PATH.parent / doc_row.page_file_path.replace('pages', 'nyc/pages')).expanduser()
+            doc_path = (DATA_PATH.parent / doc_row.page_file_path.replace('pages', f'{state.CONFIG.universe_name}/pages')).expanduser()
 
             if doc_path.exists():
                 # Use cache for PDF conversion

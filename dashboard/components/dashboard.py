@@ -12,8 +12,10 @@ from .search_form import (
     ImageStateSearchForm,
     ImageChangeSearchForm,
     TextStateSearchForm,
-    TextChangeSearchForm
+    TextChangeSearchForm,
+    DissimilaritySearchForm
 )
+from .search_form.registry import SearchFormRegistry
 from .map_component import Map
 
 import logging
@@ -35,7 +37,7 @@ class Dashboard(BaseComponent):
         enable_image_search: bool = True,
         enable_text_search: bool = True
     ):
-        """Initialize the dashboard.
+        """Initialize the dashboard with all search forms from registry.
 
         Args:
             universe_name: Name of the universe being explored
@@ -43,8 +45,8 @@ class Dashboard(BaseComponent):
             all_streets: List of all unique street names
             all_boroughs: List of all unique borough names
             id_prefix: Prefix for component IDs
-            enable_image_search: Whether to enable image-based search (default: True)
-            enable_text_search: Whether to enable text-based search (default: False)
+            enable_image_search: Whether to enable image-based search (deprecated - all tabs enabled)
+            enable_text_search: Whether to enable text-based search (deprecated - all tabs enabled)
         """
         super().__init__(id_prefix=id_prefix)
         self.universe_name = universe_name
@@ -54,37 +56,42 @@ class Dashboard(BaseComponent):
         self.enable_image_search = enable_image_search
         self.enable_text_search = enable_text_search
 
-        # Create search form instances for Image search tabs
-        if self.enable_image_search:
-            self.image_state_search_form = ImageStateSearchForm(
-                available_years=available_years,
-                all_streets=all_streets,
-                all_boroughs=all_boroughs
-            )
-            self.image_change_search_form = ImageChangeSearchForm(
-                available_years=available_years,
-                all_streets=all_streets,
-                all_boroughs=all_boroughs
-            )
-        else:
-            self.image_state_search_form = None
-            self.image_change_search_form = None
+        # Create all 5 search form instances explicitly
+        self.state_similarity_form = ImageStateSearchForm(
+            available_years=available_years,
+            all_streets=all_streets,
+            all_boroughs=all_boroughs
+        )
 
-        # Create search form instances for Text search tabs
-        if self.enable_text_search:
-            self.text_state_search_form = TextStateSearchForm(
-                available_years=available_years,
-                all_streets=all_streets,
-                all_boroughs=all_boroughs
-            )
-            self.text_change_search_form = TextChangeSearchForm(
-                available_years=available_years,
-                all_streets=all_streets,
-                all_boroughs=all_boroughs
-            )
-        else:
-            self.text_state_search_form = None
-            self.text_change_search_form = None
+        self.dissimilarity_form = DissimilaritySearchForm(
+            available_years=available_years,
+            all_streets=all_streets,
+            all_boroughs=all_boroughs
+        )
+
+        self.state_description_form = TextStateSearchForm(
+            available_years=available_years,
+            all_streets=all_streets,
+            all_boroughs=all_boroughs
+        )
+
+        self.change_similarity_form = ImageChangeSearchForm(
+            available_years=available_years,
+            all_streets=all_streets,
+            all_boroughs=all_boroughs
+        )
+
+        self.change_description_form = TextChangeSearchForm(
+            available_years=available_years,
+            all_streets=all_streets,
+            all_boroughs=all_boroughs
+        )
+
+        # Backward compatibility aliases for old code
+        self.image_state_search_form = self.state_similarity_form
+        self.image_change_search_form = self.change_similarity_form
+        self.text_state_search_form = self.state_description_form
+        self.text_change_search_form = self.change_description_form
 
         # Shared components (used by all tabs)
         self.map_component = Map()
@@ -101,78 +108,37 @@ class Dashboard(BaseComponent):
         from dash import Input, Output, State
         import dash_bootstrap_components as dbc
 
-        # Register child component callbacks
-        if self.enable_image_search:
-            self.image_state_search_form.register_callbacks(app)
-            self.image_change_search_form.register_callbacks(app)
-        if self.enable_text_search:
-            self.text_state_search_form.register_callbacks(app)
-            self.text_change_search_form.register_callbacks(app)
+        # Register all search form callbacks
+        self.state_similarity_form.register_callbacks(app)
+        self.dissimilarity_form.register_callbacks(app)
+        self.state_description_form.register_callbacks(app)
+        self.change_similarity_form.register_callbacks(app)
+        self.change_description_form.register_callbacks(app)
 
+        # Register shared component callbacks
         self.map_component.register_callbacks(app)
         self.results_panel.register_callbacks(app)
         self.details_panel.register_callbacks(app)
 
-        # Track active search type and sub-tab, clear inputs when switching
-        outputs = [Output('active-search-tab', 'data')]
-        inputs = []
+        # Track active search tab (flat structure - tab value is the search type)
+        @app.callback(
+            Output('active-search-tab', 'data'),
+            Input('search-tabs', 'value')
+        )
+        def track_active_tab(tab_value):
+            """Track which search tab is currently active.
 
-        # Add outputs for clearing image search inputs
-        if self.enable_image_search:
-            outputs.extend([
-                Output('image-state-search-form--street-selector', 'value'),
-                Output('image-change-search-form--street-selector', 'value')
-            ])
-            inputs.append(Input('image-search-tabs', 'value'))
-
-        # Add outputs for clearing text search inputs
-        if self.enable_text_search:
-            outputs.extend([
-                Output('text-state-search-form--text-input', 'value'),
-                Output('text-change-search-form--text-input', 'value')
-            ])
-            inputs.append(Input('text-search-tabs', 'value'))
-
-        # Add top-level search type tabs input
-        inputs.insert(0, Input('search-tabs', 'value'))
-
-        @app.callback(*outputs, *inputs)
-        def track_active_tab(*args):
-            """Track which search tab is currently active and clear inputs when switching."""
-            search_type = args[0]  # 'image' or 'text'
-
-            # Determine the active sub-tab
-            if self.enable_image_search and search_type == 'image':
-                sub_tab = args[1] if len(args) > 1 else 'image-state'
-                active_tab = sub_tab
-            elif self.enable_text_search and search_type == 'text':
-                # Text tab index depends on whether image search is enabled
-                idx = 1 if self.enable_image_search else 1
-                sub_tab = args[idx] if len(args) > idx else 'text-state'
-                active_tab = sub_tab
-            else:
-                active_tab = 'image-state'  # Default
-
-            # Build return values: active_tab + cleared inputs
-            result = [active_tab]
-
-            # Clear image search inputs
-            if self.enable_image_search:
-                result.extend([[], []])  # Clear both street selectors
-
-            # Clear text search inputs
-            if self.enable_text_search:
-                result.extend(['', ''])  # Clear both text inputs
-
-            return tuple(result) if len(result) > 1 else result[0]
+            Other components (map, details panel) use this to react to tab changes.
+            """
+            return tab_value
 
         # Register IMAGE STATE search callback
         if self.enable_image_search:
             @app.callback(
                 Output('results-content', 'children'),
                 Output('results-card', 'style'),
-                Output('state-result-locations', 'data'),
-                Output('state-query-params', 'data'),
+                Output('state-similarity-result-locations', 'data'),
+                Output('state-similarity-query-params', 'data'),
                 Input('state-search-form--search-btn', 'n_clicks'),
                 State('selected-location-id', 'data'),
                 State('state-search-form--borough-selector', 'value'),
@@ -193,8 +159,8 @@ class Dashboard(BaseComponent):
             @app.callback(
                 Output('results-content', 'children', allow_duplicate=True),
                 Output('results-card', 'style', allow_duplicate=True),
-                Output('change-result-locations', 'data'),
-                Output('change-query-params', 'data'),
+                Output('change-similarity-result-locations', 'data'),
+                Output('change-similarity-query-params', 'data'),
                 Input('change-search-form--search-btn', 'n_clicks'),
                 State('selected-location-id', 'data'),
                 State('change-search-form--borough-selector', 'value'),
@@ -216,8 +182,8 @@ class Dashboard(BaseComponent):
             @app.callback(
                 Output('results-content', 'children', allow_duplicate=True),
                 Output('results-card', 'style', allow_duplicate=True),
-                Output('text-state-result-locations', 'data'),
-                Output('text-state-query-params', 'data'),
+                Output('state-description-result-locations', 'data'),
+                Output('state-description-query-params', 'data'),
                 Input('state-text-search-form--search-btn', 'n_clicks'),
                 State('state-text-search-form--text-input', 'value'),
                 State('state-text-search-form--borough-selector', 'value'),
@@ -235,8 +201,8 @@ class Dashboard(BaseComponent):
             @app.callback(
                 Output('results-content', 'children', allow_duplicate=True),
                 Output('results-card', 'style', allow_duplicate=True),
-                Output('text-change-result-locations', 'data'),
-                Output('text-change-query-params', 'data'),
+                Output('change-description-result-locations', 'data'),
+                Output('change-description-query-params', 'data'),
                 Input('change-text-search-form--search-btn', 'n_clicks'),
                 State('change-text-search-form--text-input', 'value'),
                 State('change-text-search-form--borough-selector', 'value'),
@@ -297,51 +263,41 @@ class Dashboard(BaseComponent):
 
     @property
     def layout(self) -> DashComponent:
-        """Return the complete dashboard layout with tabs."""
-        
-        how_many_tabs = self.enable_image_search + self.enable_text_search
-        if how_many_tabs > 1:
-            # TODO: Only use top_tabs if more than 1
-            #top_tabs = dcc.Tab()
-            pass
-        
-        # Build top-level tab list and panels
-        top_tab_list = []
-        top_tab_panels = []
-
-        if self.enable_image_search:
-            top_tab_list.append(dmc.TabsTab('Image-Based Search', value='image-tabs'))
-            top_tab_panels.append(self._top_tab_layout('image'))
-
-        if self.enable_text_search:
-            top_tab_list.append(dmc.TabsTab('Text-Based Search', value='text-tabs'))
-            top_tab_panels.append(self._top_tab_layout('text'))
-
-        # Determine default tab value
-        default_tab = 'image-tabs' if self.enable_image_search else 'text-tabs'
+        """Return the complete dashboard layout with flat 5-tab structure."""
+        print("DEBUG: Dashboard.layout property accessed")
 
         components = [
             # Header
             self._header(),
 
-            # Tabs with different search forms (DMC Tabs)
+            # Flat 5-tab structure (explicit, not dynamically generated)
             dmc.Tabs(
                 [
                     dmc.TabsList(
-                        top_tab_list,
-                        # Style top-level tabs to be larger and more prominent
+                        [
+                            dmc.TabsTab('State Similarity', value='state-similarity'),
+                            dmc.TabsTab('State Dissimilarity', value='dissimilarity'),
+                            dmc.TabsTab('State Description', value='state-description'),
+                            dmc.TabsTab('Change Similarity', value='change-similarity'),
+                            dmc.TabsTab('Change Description', value='change-description'),
+                        ],
                         style={
                             'marginBottom': '15px',
                             'borderBottom': '2px solid #dee2e6',
                             'gap': '8px'
                         }
                     ),
-                    *top_tab_panels
+                    # Tab panels with search forms
+                    dmc.TabsPanel(self.state_similarity_form.layout, value='state-similarity'),
+                    dmc.TabsPanel(self.dissimilarity_form.layout, value='dissimilarity'),
+                    dmc.TabsPanel(self.state_description_form.layout, value='state-description'),
+                    dmc.TabsPanel(self.change_similarity_form.layout, value='change-similarity'),
+                    dmc.TabsPanel(self.change_description_form.layout, value='change-description'),
                 ],
                 id='search-tabs',
-                value=default_tab,
+                value='state-similarity',  # Default to first tab
                 orientation='horizontal',
-                variant='pills',  # Use pills for more obvious selection
+                variant='pills',
                 color='blue',
                 radius='md',
                 styles={
@@ -383,42 +339,33 @@ class Dashboard(BaseComponent):
             ], className='mb-3'),
 
             # Data stores
-            dcc.Store(id='active-search-tab'),  # Track which tab is active
+            dcc.Store(id='active-search-tab', data='state-similarity'),  # Track which tab is active
             dcc.Store(id='selected-location-id'),  # Shared across tabs
 
-            # Image state search stores
-            dcc.Store(id='state-result-locations'),
-            dcc.Store(id='state-query-params'),
+            # Store per search type (new naming pattern)
+            dcc.Store(id='state-similarity-result-locations'),
+            dcc.Store(id='state-similarity-query-params'),
 
-            # Image change search stores
-            dcc.Store(id='change-result-locations'),
-            dcc.Store(id='change-query-params'),
+            dcc.Store(id='dissimilarity-result-locations'),
+            dcc.Store(id='dissimilarity-query-params'),
 
-            # Text state search stores
-            dcc.Store(id='text-state-result-locations'),
-            dcc.Store(id='text-state-query-params'),
+            dcc.Store(id='state-description-result-locations'),
+            dcc.Store(id='state-description-query-params'),
 
-            # Text change search stores
-            dcc.Store(id='text-change-result-locations'),
-            dcc.Store(id='text-change-query-params'),
+            dcc.Store(id='change-similarity-result-locations'),
+            dcc.Store(id='change-similarity-query-params'),
+
+            dcc.Store(id='change-description-result-locations'),
+            dcc.Store(id='change-description-query-params'),
         ]
 
-        return dbc.Container(
-            dmc.MantineProvider(
+        print(f"DEBUG: Layout created with {len(components)} components")
+        # Wrap in MantineProvider for dmc components
+        return dmc.MantineProvider(
+            dbc.Container(
                 components,
-                theme={
-                    "colorScheme": "dark",
-                    "primaryColor": "blue",
-                    "defaultRadius": "md",
-                    "focusRing": "auto",
-                    "components": {
-                        "Button": {"defaultProps": {"variant": "filled"}},
-                        "Paper": {"defaultProps": {"shadow": "sm"}},
-                    }
-                },
-                forceColorScheme="dark"  # Force dark mode
-            ),
-            fluid=True
+                fluid=True
+            )
         )
 
 
@@ -428,8 +375,8 @@ class Dashboard(BaseComponent):
 
         """Handle state search (image-to-image by year)."""
         # Only process if state tab is active
-        if active_tab != 'image-state':
-            return dbc.Alert("Please switch to State Search tab", color='warning'), {'display': 'block'}, [], None
+        #if active_tab != 'image-state':
+        #    return dbc.Alert("Please switch to State Search tab", color='warning'), {'display': 'block'}, [], None
 
         if not location_id or not year:
             return (
