@@ -34,7 +34,7 @@ class DetailsDocumentViewer(BaseModalityViewer):
     MODALITY_NAME = 'documents'
     MODALITY_LABEL = 'Documents'
 
-    def __init__(self, location_id: Optional[int] = None, page_size: int = 10):
+    def __init__(self, location_id: Optional[str] = None, page_size: int = 10):
         """Initialize document viewer.
 
         Args:

@@ -90,7 +90,7 @@ def render_detail_row(label: str, value: str):
     ], style={'marginBottom': 6, 'fontSize': 13})
 
 
-def render_accordion_header(index: int, location_id: int, similarity: float,
+def render_accordion_header(index: int, location_id: str, similarity: float,
                             street_info: str = None):
     """Render accordion header with consistent styling.
 

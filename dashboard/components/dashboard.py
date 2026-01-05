@@ -146,8 +146,8 @@ class Dashboard(BaseComponent):
                 State('state-search-form--target-year-selector', 'value'),
                 State('state-search-form--limit-dropdown', 'value'),
                 State('state-search-form--media-type-selector', 'value'),
-                State('state-search-form--use-faiss-checkbox', 'value'),
-                State('state-search-form--use-whitening-checkbox', 'value'),
+                State('state-search-form--use-faiss-checkbox', 'checked'),
+                State('state-search-form--use-whitening-checkbox', 'checked'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )
@@ -169,8 +169,8 @@ class Dashboard(BaseComponent):
                 State('change-search-form--limit-dropdown', 'value'),
                 State('change-search-form--media-type-selector', 'value'),
                 State('change-search-form--sequential-checkbox', 'value'),
-                State('change-search-form--use-faiss-checkbox', 'value'),
-                State('change-search-form--use-whitening-checkbox', 'value'),
+                State('change-search-form--use-faiss-checkbox', 'checked'),
+                State('change-search-form--use-whitening-checkbox', 'checked'),
                 State('active-search-tab', 'data'),
                 prevent_initial_call=True
             )

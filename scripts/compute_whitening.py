@@ -142,7 +142,7 @@ def test_retrieval(
     universe_name: str,
     database_path: str,
     year: int,
-    location_id: int,
+    location_id: str,
     stats_dir: str = './data/whitening_stats',
     k: int = 20,
     media_type: str = 'image'

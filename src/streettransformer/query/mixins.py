@@ -29,7 +29,7 @@ class StateMixin:
         year: Year of interest
         target_year: Optional year to search within (None = all years)
     """
-    location_id: int
+    location_id: str
     year: int
     target_years: Optional[list[int]] = None
 
@@ -53,7 +53,7 @@ class ChangeMixin:
         year_to: Ending year
         sequential_only: Whether to only search sequential year pairs
     """
-    location_id: int
+    location_id: str
     year_from: int
     year_to: int
     target_years: Optional[list[int]] = None
