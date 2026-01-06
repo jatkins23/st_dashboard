@@ -231,4 +231,5 @@ class DetailsPanel(BaseComponent):
                 self._body
             ], id='details-card', withBorder=True, shadow='sm', p='md',
                style={'display': 'none'})
-        ], className='floating-panel floating-panel-left')
+        ], className='floating-panel floating-panel-left'
+        )

@@ -124,9 +124,9 @@ class Dashboard(BaseComponent):
         def toggle_map_visibility(master_tab_value):
             """Show map only when Search master tab is active."""
             if master_tab_value == 'master-search':
-                return {'display': 'block'}
+                return {'display': 'block', 'position': 'relative'}
             else:
-                return {'display': 'none'}
+                return {'display': 'none', 'position': 'relative'}
 
         # Register IMAGE STATE search callback
         @app.callback(
@@ -370,6 +370,7 @@ class Dashboard(BaseComponent):
             # Map with floating panels (visible in search tab only)
             html.Div(
                 id='search-map-container',
+                # style={'position': 'fixed'},
                 children=[
                     dbc.Row([
                         dbc.Col([
@@ -380,7 +381,7 @@ class Dashboard(BaseComponent):
                                 self.results_panel(),
                                 # Floating details panel
                                 self.details_panel()
-                            ], style={'position': 'relative'})
+                            ])
                         ]),
                     ], className='mb-3'),
                 ]

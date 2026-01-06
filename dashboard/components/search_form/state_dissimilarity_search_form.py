@@ -22,7 +22,7 @@ class StateDissimilaritySearchForm(BaseSearchForm):
     SEARCH_TYPE = 'dissimilarity'
     TAB_LABEL = 'State Dissimilarity'
     QUERY_CLASS = StateDissimilarityQuery
-    RESULT_TYPE = 'change'
+    RESULT_TYPE = 'dissimilarity' # TODO: Still need to implement this
 
     def __init__(self, available_years: list, all_streets: list, all_boroughs: list = None):
         """Initialize dissimilarity search form.

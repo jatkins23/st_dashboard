@@ -310,7 +310,8 @@ class BaseSearchForm(BaseComponent):
         shadow="sm",
         p="md",
         radius="md",
-        withBorder=True
+        withBorder=True,
+        className="search-form-panel"
         )
 
     # ===== ABSTRACT METHODS =====

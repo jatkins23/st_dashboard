@@ -4,10 +4,11 @@
 .floating-panel {
     position: absolute;
     top: 10px;
-    width: 25%;
+    width: 30%;
     max-height: calc(80vh - 20px);
     overflow-y: auto;
     z-index: 1000;
+    border-radius: 5%;
 }
 
 .floating-panel-left {
@@ -48,4 +49,54 @@
 .scrollable-container {
     max-height: 100%;
     overflow-y: auto;
+}
+
+/* Search Form Panel */
+.search-form-panel {
+    background-color: var(--bg-secondary);
+}
+
+/* Mantine Select and MultiSelect Inputs */
+.mantine-Select-input,
+.mantine-MultiSelect-input {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.mantine-Select-input::placeholder,
+.mantine-MultiSelect-input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* Mantine Dropdown Menus */
+.mantine-Select-dropdown,
+.mantine-MultiSelect-dropdown {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
+
+.mantine-Select-item,
+.mantine-MultiSelect-item {
+    color: var(--text-primary);
+    background-color: transparent;
+}
+
+.mantine-Select-item:hover,
+.mantine-MultiSelect-item:hover,
+.mantine-Select-item[data-hovered],
+.mantine-MultiSelect-item[data-hovered] {
+    background-color: var(--bg-secondary);
+    color: white;
+}
+
+.mantine-Select-item[data-selected],
+.mantine-MultiSelect-item[data-selected] {
+    background-color: var(--color-info);
+    color: white;
+}
+
+.mantine-Select-item[data-selected]:hover,
+.mantine-MultiSelect-item[data-selected]:hover {
+    background-color: #1177bb;
 }

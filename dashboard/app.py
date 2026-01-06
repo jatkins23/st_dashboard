@@ -107,15 +107,12 @@ def main():
     app_ctx.initialize_context(config, db, available_years, all_locations_df, projects_df)
 
     # Create app and layout
-    assets_folder = Path(__file__).parent.parent / 'assets'
+    assets_folder = Path(__file__).parent / 'assets'
     app = Dash(
         __name__,
         suppress_callback_exceptions=True,
         external_stylesheets=[dbc.themes.DARKLY],
-        assets_folder=str(assets_folder),
-        #dev_tools_hot_reload=True,
-        #dev_tools_ui=True,
-        #dev_tools_props_check=False  # Disable prop validation for faster dev
+        assets_folder=str(assets_folder), # Note: not necessary due to assets name
     )
 
     # Create dashboard (which creates all component instances internally)
