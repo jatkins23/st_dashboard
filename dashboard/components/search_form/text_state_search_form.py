@@ -4,8 +4,8 @@ from dash import Input, Output, State
 import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
-from ... import state
-from streettransformer.query.queries.ask import TextToImageStateQuery
+from streettransformer.query.queries import StateDescriptionQuery
+from streettransformer.db.database import get_connection
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class TextStateSearchForm(BaseSearchForm):
 
     SEARCH_TYPE = 'state-description'
     TAB_LABEL = 'State Description'
-    QUERY_CLASS = TextToImageStateQuery
+    QUERY_CLASS = StateDescriptionQuery
     RESULT_TYPE = 'state'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
@@ -56,7 +56,7 @@ class TextStateSearchForm(BaseSearchForm):
             ),
         ]
 
-    def execute_search(self, state, text, target_year, limit, media_type, boroughs=None, **kwargs):
+    def execute_search(self, app_ctx, text, target_year, limit, media_type, boroughs=None, **kwargs):
         """Execute state text search (text-to-image by year).
 
         Args:
@@ -70,8 +70,6 @@ class TextStateSearchForm(BaseSearchForm):
         Returns:
             StateResultsSet with enriched results
         """
-        from streettransformer.db.database import get_connection
-        from streettransformer.query.queries.ask import TextToImageStateQuery
 
         # Configuration settings
         use_faiss_enabled = True
@@ -81,9 +79,9 @@ class TextStateSearchForm(BaseSearchForm):
         selected_media_type = media_type if media_type else 'image'
 
         # Create and execute query
-        query = TextToImageStateQuery(
-            config=state.CONFIG,
-            db=state.DB,
+        query = StateDescriptionQuery(
+            config=app_ctx.CONFIG,
+            db=app_ctx.DB,
             text=text,
             target_years=[target_year] if target_year else None,
             limit=limit,
@@ -96,20 +94,20 @@ class TextStateSearchForm(BaseSearchForm):
 
         # Enrich results with street names and image paths
         if len(results_set) > 0:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 for result in results_set:
-                    result.enrich_street_names(con, state.CONFIG.universe_name)
-                    result.enrich_image_path(con, state.CONFIG.universe_name, selected_media_type)
+                    result.enrich_street_names(con, app_ctx.CONFIG.universe_name)
+                    result.enrich_image_path(con, app_ctx.CONFIG.universe_name, selected_media_type)
 
         # Filter by borough if specified
         if boroughs and len(boroughs) > 0:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 # Get borough for each result location
                 location_ids = [r.location_id for r in results_set]
                 if location_ids:
                     query = f"""
                         SELECT location_id, boro
-                        FROM {state.CONFIG.universe_name}.locations
+                        FROM {app_ctx.CONFIG.universe_name}.locations
                         WHERE location_id IN ({','.join(map(str, location_ids))})
                     """
                     boro_df = con.execute(query).df()

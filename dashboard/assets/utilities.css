@@ -1,0 +1,53 @@
+/* Utility Classes */
+
+/* Text Color Utilities */
+.text-secondary {
+    color: var(--text-secondary);
+}
+
+/* Badge Styles */
+.badge {
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-success {
+    background-color: var(--color-success);
+}
+
+.badge-warning {
+    background-color: var(--color-warning);
+}
+
+.badge-secondary {
+    background-color: var(--text-secondary);
+}
+
+/* Spacing Utilities - Margin Bottom */
+.mb-xs {
+    margin-bottom: 0.25rem; /* 4px */
+}
+
+.mb-sm {
+    margin-bottom: 0.5rem; /* 8px */
+}
+
+.mb-md {
+    margin-bottom: 1rem; /* 16px */
+}
+
+/* Spacing Utilities - Margin Top */
+.mt-xs {
+    margin-top: 0.25rem; /* 4px */
+}
+
+.mt-sm {
+    margin-top: 0.5rem; /* 8px */
+}
+
+.mt-md {
+    margin-top: 1rem; /* 16px */
+}

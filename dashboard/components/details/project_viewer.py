@@ -3,7 +3,6 @@
 from dash import html
 import dash_mantine_components as dmc
 from typing import Optional
-from ... import state
 from .base_modality_viewer import BaseModalityViewer
 
 
@@ -23,14 +22,16 @@ class DetailsProjectViewer(BaseModalityViewer):
         Returns:
             List of Dash components for the project section
         """
-        if not self.location_id or state.PROJECTS_DF is None or state.PROJECTS_DF.empty:
+        from ... import context as app_ctx
+
+        if not self.location_id or app_ctx.PROJECTS_DF is None or app_ctx.PROJECTS_DF.empty:
             return [
                 dmc.Title("Projects", order=6, fw=700, mt='md'),
                 dmc.Text("No projects found", size='sm', c='dimmed', ta='center', p='md')
             ]
 
         # Filter projects for this location
-        location_projects = state.PROJECTS_DF[state.PROJECTS_DF['location_id'] == self.location_id]
+        location_projects = app_ctx.PROJECTS_DF[app_ctx.PROJECTS_DF['location_id'] == self.location_id]
 
         if location_projects.empty:
             return [

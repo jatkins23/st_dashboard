@@ -4,8 +4,8 @@ from typing import Optional, List
 import logging
 
 from pydantic import BaseModel
-from ... import EmbeddingDB
-from ..mixins import DatabaseMixin
+from .. import EmbeddingDB
+from .mixins import DatabaseMixin
 
 logger = logging.getLogger(__name__)
 

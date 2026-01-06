@@ -1,10 +1,12 @@
-from dash import html
+from dash import html, Input, Output, State
 import dash_mantine_components as dmc
 from dash.development.base_component import Component as DashComponent
 from typing import List
 
 from ..base import BaseComponent
 from .base_modality_viewer import ModalityViewerRegistry
+from . import DetailsStatsViewer
+from streettransformer.db.database import get_connection
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,11 +40,6 @@ class DetailsPanel(BaseComponent):
 
     def register_callbacks(self, app):
         """Register callbacks for the panel."""
-        from dash import Input, Output, State, html
-        from . import DetailsStatsViewer
-        from streettransformer.db.database import get_connection
-        from ... import state
-
         # Panel collapse toggle callback
         @app.callback(
             Output('details-collapse', 'opened'),
@@ -79,6 +76,7 @@ class DetailsPanel(BaseComponent):
                           state_similarity_params, state_description_params,
                           change_similarity_params, change_description_params):
             """Update all detail tabs when location is selected."""
+            from ... import context as app_ctx
             location_id = None
 
             # Map click takes priority
@@ -97,7 +95,7 @@ class DetailsPanel(BaseComponent):
                 return tuple(empty_outputs)
 
             try:
-                with get_connection(state.CONFIG.database_path, read_only=True) as con:
+                with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                     # Get location info
                     query = f"""
                         SELECT
@@ -106,7 +104,7 @@ class DetailsPanel(BaseComponent):
                                 array_to_string(additional_streets, ', '),
                                 CONCAT(street1, ' & ', street2)
                             ) as street_name
-                        FROM {state.CONFIG.universe_name}.locations
+                        FROM {app_ctx.CONFIG.universe_name}.locations
                         WHERE location_id = '{location_id}'
                     """
                     result = con.execute(query).df()
@@ -122,7 +120,7 @@ class DetailsPanel(BaseComponent):
                     # Get images for image viewer
                     image_query = f"""
                         SELECT path, media_type, year
-                        FROM {state.CONFIG.universe_name}.media_embeddings
+                        FROM {app_ctx.CONFIG.universe_name}.media_embeddings
                         WHERE location_id = '{location_id}'
                             AND media_type = 'image'
                             AND path IS NOT NULL
@@ -185,7 +183,7 @@ class DetailsPanel(BaseComponent):
                 variant='subtle',
                 size='sm'
             )
-        ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'marginBottom': '0.5rem'})
+        ], className='panel-header')
 
     @property
     def _body(self) -> DashComponent:
@@ -219,7 +217,7 @@ class DetailsPanel(BaseComponent):
                     orientation="horizontal",
                     mt="md"
                 )
-            ], style={'maxHeight': '100%', 'overflowY': 'auto'})
+            ], className='scrollable-container')
         ], id='details-collapse', opened=True)
 
     @property
@@ -233,12 +231,4 @@ class DetailsPanel(BaseComponent):
                 self._body
             ], id='details-card', withBorder=True, shadow='sm', p='md',
                style={'display': 'none'})
-        ], style={ # TODO: !! Move to an actual style file
-            'position': 'absolute',
-            'top': '10px',
-            'left': '10px',
-            'width': '25%',
-            'maxHeight': 'calc(80vh - 20px)',
-            'overflowY': 'auto',
-            'zIndex': 1000
-        })
+        ], className='floating-panel floating-panel-left')

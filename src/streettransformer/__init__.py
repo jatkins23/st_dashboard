@@ -32,8 +32,8 @@ from .db.faiss_index import FAISSIndexer, IndexInfo
 from .db.whitening import WhiteningTransform, WhiteningStats
 from .query import (
     CLIPEncoder,
-    ImageToImageStateQuery,
-    ImageToImageChangeQuery,
+    ChangeSimilarityQuery,
+    StateSimilarityQuery,
     StateResultsSet,
     ChangeResultsSet,
     StateResultInstance,
@@ -70,15 +70,15 @@ __all__ = [
     # CLIP encoding
     "CLIPEncoder",
     
-    # Concrete query classes
-    'ImageToImageStateQuery',
-    'ImageToImageChangeQuery',
+    # query classes
+    'ChangeSimilarityQuery',
+    'StateSimilarityQuery',
     
-    # Concrete ResultsSet Classes
+    # ResultsSet Classes
     'StateResultsSet',
     'ChangeResultsSet',
 
-    # Concrete ResultInstance Classes
+    # ResultInstance Classes
     'StateResultInstance',
     'ChangeResultInstance',
     

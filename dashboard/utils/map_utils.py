@@ -2,7 +2,6 @@
 
 import plotly.graph_objects as go
 import pandas as pd
-from ..config import COLORS
 from pathlib import Path
 import logging
 
@@ -115,7 +114,7 @@ def create_location_map(projects_df: pd.DataFrame,
         # Add traces in order: other -> results -> query (so query is on top)
         _add_project_trace(fig, other_projects, 'Projects', '#FFA500', size=6, opacity=0.3)
         _add_project_trace(fig, result_projects, 'Result Projects', '#1E90FF', size=10, opacity=0.9, prefix='RESULT')
-        _add_project_trace(fig, query_projects, 'Query Project', COLORS['error'], size=14, opacity=1.0, prefix='QUERY LOCATION')
+        _add_project_trace(fig, query_projects, 'Query Project', '#f48771', size=14, opacity=1.0, prefix='QUERY LOCATION')
 
     # Update layout
     fig.update_layout(
@@ -126,8 +125,8 @@ def create_location_map(projects_df: pd.DataFrame,
         ),
         margin=dict(l=0, r=0, t=0, b=0),
         height=800,
-        paper_bgcolor=COLORS['background'],
-        plot_bgcolor=COLORS['background'],
+        paper_bgcolor='#1e1e1e',
+        plot_bgcolor='#1e1e1e',
         showlegend=False,
         hovermode='closest'
     )

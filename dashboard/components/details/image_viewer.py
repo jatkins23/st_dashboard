@@ -40,19 +40,15 @@ class DetailsImageViewer(BaseModalityViewer):
                     if is_query_year:
                         query_year_index = len(carousel_items)
 
-                    # Add border style for query year
-                    img_style = {
-                        'border': '4px solid #ffc107',
-                        'borderRadius': '8px',
-                        'boxShadow': '0 0 15px rgba(255, 193, 7, 0.6)'
-                    } if is_query_year else {}
+                    # Add CSS class for query year highlighting
+                    img_class = 'image-default image-highlighted' if is_query_year else 'image-default'
 
                     carousel_items.append({
                         'key': str(year),
                         'src': img_base64,
                         'header': f"Year {year}" + (" (Query Year)" if is_query_year else ""),
                         'caption': '',
-                        'img_style': img_style
+                        'img_class': img_class
                     })
 
         return carousel_items, query_year_index
@@ -81,7 +77,7 @@ class DetailsImageViewer(BaseModalityViewer):
                         dmc.Text(item['header'], fw=600, size='sm', mb='xs'),
                         html.Img(
                             src=item['src'],
-                            style={**{'width': '100%', 'height': 'auto'}, **item.get('img_style', {})}
+                            className=item.get('img_class', 'carousel-image')
                         )
                     ])
                 )

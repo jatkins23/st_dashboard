@@ -4,9 +4,9 @@ from dash import Input, Output, State
 import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
-from .utils import filter_street_options_by_selection
-from ... import state
-from streettransformer.query.queries.ask import ImageToImageStateQuery
+from .utils import filter_street_options_by_selection, get_location_from_streets
+from streettransformer.query.queries import StateSimilarityQuery
+from streettransformer.db.database import get_connection
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class ImageStateSearchForm(BaseSearchForm):
 
     SEARCH_TYPE = 'state-similarity'
     TAB_LABEL = 'State Similarity'
-    QUERY_CLASS = ImageToImageStateQuery
+    QUERY_CLASS = StateSimilarityQuery
     RESULT_TYPE = 'state'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
@@ -64,7 +64,7 @@ class ImageStateSearchForm(BaseSearchForm):
             ),
         ]
 
-    def execute_search(self, state, location_id, year, target_year, limit, media_type, use_faiss:bool, use_whitening:bool, boroughs=None, **kwargs):
+    def execute_search(self, app_ctx, location_id, year, target_year, limit, media_type, use_faiss:bool, use_whitening:bool, boroughs=None, **kwargs):
         """Execute state search (image-to-image by year).
 
         Args:
@@ -79,16 +79,14 @@ class ImageStateSearchForm(BaseSearchForm):
         Returns:
             StateResultsSet with enriched results
         """
-        from streettransformer.db.database import get_connection
-        from streettransformer.query.queries.ask import ImageToImageStateQuery
 
         # Default to 'image' if no media type selected
         selected_media_type = media_type if media_type else 'image'
 
         # Create and execute query
-        query = ImageToImageStateQuery(
-            config=state.CONFIG,
-            db=state.DB,
+        query = StateSimilarityQuery(
+            config=app_ctx.CONFIG,
+            db=app_ctx.DB,
             location_id=location_id,
             year=year,
             target_years=[target_year] if target_year else None,
@@ -103,20 +101,20 @@ class ImageStateSearchForm(BaseSearchForm):
 
         # Enrich results with street names and image paths
         if len(results_set) > 0:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 for result in results_set:
-                    result.enrich_street_names(con, state.CONFIG.universe_name)
-                    result.enrich_image_path(con, state.CONFIG.universe_name, selected_media_type)
+                    result.enrich_street_names(con, app_ctx.CONFIG.universe_name)
+                    result.enrich_image_path(con, app_ctx.CONFIG.universe_name, selected_media_type)
 
         # Filter by borough if specified
         if boroughs and len(boroughs) > 0:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 # Get borough for each result location
                 location_ids = [r.location_id for r in results_set]
                 if location_ids:
                     query = f"""
                         SELECT location_id, boro
-                        FROM {state.CONFIG.universe_name}.locations
+                        FROM {app_ctx.CONFIG.universe_name}.locations
                         WHERE location_id IN ({','.join(map(str, location_ids))})
                     """
                     boro_df = con.execute(query).df()
@@ -135,8 +133,6 @@ class ImageStateSearchForm(BaseSearchForm):
         1. Street filtering callback - updates available street options
         2. Location selection callback - converts streets to location_id
         """
-        from .utils import get_location_from_streets
-
         # Store the full street list for resetting
         all_streets_data = [{"label": s, "value": s} for s in self.all_streets]
 
@@ -147,9 +143,10 @@ class ImageStateSearchForm(BaseSearchForm):
         )
         def filter_street_options_state(selected_streets):
             """Filter street options to only show valid combinations."""
+            from ... import context as app_ctx
             logger.info(f"State street filter callback triggered. Selected: {selected_streets}")
             # Always pass the full street list, not the current filtered data
-            result = filter_street_options_by_selection(selected_streets, all_streets_data, state)
+            result = filter_street_options_by_selection(selected_streets, all_streets_data, app_ctx)
             logger.info(f"Filtered options count: {len(result) if result else 0}")
             return result
 
@@ -160,7 +157,8 @@ class ImageStateSearchForm(BaseSearchForm):
         )
         def update_selected_location_state(selected_streets):
             """Convert selected streets to location_id."""
+            from ... import context as app_ctx
             # Only update if at least 2 streets are selected
             if not selected_streets or len(selected_streets) < 2:
                 return None
-            return get_location_from_streets(selected_streets, state)
+            return get_location_from_streets(selected_streets, app_ctx)

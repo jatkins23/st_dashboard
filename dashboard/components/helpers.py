@@ -8,7 +8,6 @@ application to build consistent UI components.
 
 from pathlib import Path
 from dash import html
-from ..config import COLORS
 
 from ..utils import encode_image_to_base64
 
@@ -23,22 +22,15 @@ def get_similarity_badge(similarity: float):
     """
     # Color based on similarity threshold
     if similarity >= 0.9:
-        color = COLORS['success']
+        badge_class = 'badge badge-success'
     elif similarity >= 0.7:
-        color = COLORS['warning']
+        badge_class = 'badge badge-warning'
     else:
-        color = COLORS['text-secondary']
+        badge_class = 'badge badge-secondary'
 
     return html.Span(
         f"{similarity:.3f}",
-        style={
-            'backgroundColor': color,
-            'color': 'white',
-            'padding': '4px 8px',
-            'borderRadius': '4px',
-            'fontSize': 12,
-            'fontWeight': 'bold'
-        }
+        className=badge_class
     )
 
 
@@ -55,21 +47,23 @@ def render_image(image_path_or_str, max_width: int = 300):
 
     if not image_path_or_str:
         return html.Div("No image available",
-                      style={'fontStyle': 'italic', 'color': COLORS['text-secondary']})
+                      style={'fontStyle': 'italic'},
+                      className='text-secondary')
 
     image_path = Path(image_path_or_str)
     if not image_path.exists():
         return html.Div(f"Image not found: {image_path.name}",
-                      style={'color': COLORS['warning'], 'fontSize': 12})
+                      className='warning-message',
+                      style={'fontSize': 12})
 
     img_base64 = encode_image_to_base64(image_path, max_width=max_width)
     if img_base64:
         return html.Img(src=img_base64,
-                      style={'maxWidth': '100%', 'borderRadius': '4px',
-                            'border': f"1px solid {COLORS['border']}"})
+                      className='image-default')
 
     return html.Div("Error loading image",
-                  style={'color': COLORS['error'], 'fontSize': 12})
+                  className='error-message',
+                  style={'fontSize': 12})
 
 
 def render_detail_row(label: str, value: str):
@@ -84,10 +78,10 @@ def render_detail_row(label: str, value: str):
     """
     return html.Div([
         html.Span(f"{label} ",
-                 style={'color': COLORS['text-secondary'], 'fontWeight': '500'}),
-        html.Span(value,
-                 style={'color': COLORS['text']})
-    ], style={'marginBottom': 6, 'fontSize': 13})
+                 className='text-secondary',
+                 style={'fontWeight': '500'}),
+        html.Span(value)
+    ], className='mb-xs', style={'fontSize': 13})
 
 
 def render_accordion_header(index: int, location_id: str, similarity: float,
@@ -112,7 +106,8 @@ def render_accordion_header(index: int, location_id: str, similarity: float,
     if street_info:
         components.append(
             html.Span(f" - {street_info}",
-                     style={'marginLeft': 5, 'color': COLORS['text-secondary']})
+                     className='text-secondary',
+                     style={'marginLeft': 5})
         )
 
     return html.Div(components, className='accordion-header')
@@ -134,15 +129,15 @@ def render_image_pair(image_path_from, image_path_to, year_from: int, year_to: i
     """
     before_img = html.Div([
         html.Div(f"{year_from}",
-                style={'fontSize': 12, 'color': COLORS['text-secondary'],
-                       'marginBottom': 4, 'fontWeight': '500'}),
+                className='text-secondary',
+                style={'fontSize': 12, 'marginBottom': 4, 'fontWeight': '500'}),
         render_image(image_path_from, max_width=max_width)
     ], style={'flex': 1})
 
     after_img = html.Div([
         html.Div(f"{year_to}",
-                style={'fontSize': 12, 'color': COLORS['text-secondary'],
-                       'marginBottom': 4, 'fontWeight': '500'}),
+                className='text-secondary',
+                style={'fontSize': 12, 'marginBottom': 4, 'fontWeight': '500'}),
         render_image(image_path_to, max_width=max_width)
     ], style={'flex': 1})
 

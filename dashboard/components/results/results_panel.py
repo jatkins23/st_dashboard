@@ -1,4 +1,4 @@
-from dash import html
+from dash import html, Input, Output, State
 import dash_mantine_components as dmc
 from ..base import BaseComponent
 from dash.development.base_component import Component as DashComponent
@@ -16,8 +16,6 @@ class ResultsPanel(BaseComponent):
     
     def register_callbacks(self, app):
         """Register callbacks for the panel."""
-        from dash import Input, Output, State, html
-
         @app.callback(
             Output('results-collapse', 'opened'),
             Output('results-collapse-btn', 'children'),
@@ -70,23 +68,15 @@ class ResultsPanel(BaseComponent):
                         variant='subtle',
                         size='sm'
                     )
-                ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'marginBottom': '0.5rem'}),
+                ], className='panel-header'),
                 # Collapsible content
                 dmc.Collapse([
                     html.Div(
                         content,
                         id='results-content',
-                        style={'maxHeight': '100%', 'overflowY': 'auto'}
+                        className='scrollable-container'
                     )
                 ], id='results-collapse', opened=True)
             ], id='results-card', withBorder=True, shadow='sm', p='md',
                style={'display': 'none' if self.results is None else 'block'})
-        ], style={
-            'position': 'absolute',
-            'top': '10px',
-            'right': '10px',
-            'width': '25%',
-            'maxHeight': 'calc(80vh - 20px)',
-            'overflowY': 'auto',
-            'zIndex': 1000
-        }) # TODO: refactor the style to something more elegant
+        ], className='floating-panel floating-panel-right')

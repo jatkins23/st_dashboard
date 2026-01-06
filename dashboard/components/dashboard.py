@@ -1,6 +1,6 @@
 """Main dashboard component."""
 
-from dash import dcc, html
+from dash import dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from dash.development.base_component import Component as DashComponent
@@ -15,7 +15,6 @@ from .search_form import (
     TextChangeSearchForm,
     DissimilaritySearchForm
 )
-from .search_form.registry import SearchFormRegistry
 from .map_component import Map
 
 import logging
@@ -33,11 +32,9 @@ class Dashboard(BaseComponent):
         available_years: list,
         all_streets: list,
         all_boroughs: list = None,
-        id_prefix: str = 'dashboard',
-        enable_image_search: bool = True,
-        enable_text_search: bool = True
+        id_prefix: str = 'dashboard'
     ):
-        """Initialize the dashboard with all search forms from registry.
+        """Initialize the dashboard with all search forms.
 
         Args:
             universe_name: Name of the universe being explored
@@ -45,16 +42,12 @@ class Dashboard(BaseComponent):
             all_streets: List of all unique street names
             all_boroughs: List of all unique borough names
             id_prefix: Prefix for component IDs
-            enable_image_search: Whether to enable image-based search (deprecated - all tabs enabled)
-            enable_text_search: Whether to enable text-based search (deprecated - all tabs enabled)
         """
         super().__init__(id_prefix=id_prefix)
         self.universe_name = universe_name
         self.available_years = available_years
         self.all_streets = all_streets
         self.all_boroughs = all_boroughs or []
-        self.enable_image_search = enable_image_search
-        self.enable_text_search = enable_text_search
 
         # Create all 5 search form instances explicitly
         self.state_similarity_form = ImageStateSearchForm(
@@ -87,12 +80,6 @@ class Dashboard(BaseComponent):
             all_boroughs=all_boroughs
         )
 
-        # Backward compatibility aliases for old code
-        self.image_state_search_form = self.state_similarity_form
-        self.image_change_search_form = self.change_similarity_form
-        self.text_state_search_form = self.state_description_form
-        self.text_change_search_form = self.change_description_form
-
         # Shared components (used by all tabs)
         self.map_component = Map()
         self.results_panel = ResultsPanel()
@@ -105,9 +92,6 @@ class Dashboard(BaseComponent):
         This method registers callbacks for all child components plus
         the search callbacks for each tab type.
         """
-        from dash import Input, Output, State
-        import dash_bootstrap_components as dbc
-
         # Register all search form callbacks
         self.state_similarity_form.register_callbacks(app)
         self.dissimilarity_form.register_callbacks(app)
@@ -133,87 +117,83 @@ class Dashboard(BaseComponent):
             return tab_value
 
         # Register IMAGE STATE search callback
-        if self.enable_image_search:
-            @app.callback(
-                Output('results-content', 'children'),
-                Output('results-card', 'style'),
-                Output('state-similarity-result-locations', 'data'),
-                Output('state-similarity-query-params', 'data'),
-                Input('state-search-form--search-btn', 'n_clicks'),
-                State('selected-location-id', 'data'),
-                State('state-search-form--borough-selector', 'value'),
-                State('state-search-form--year-selector', 'value'),
-                State('state-search-form--target-year-selector', 'value'),
-                State('state-search-form--limit-dropdown', 'value'),
-                State('state-search-form--media-type-selector', 'value'),
-                State('state-search-form--use-faiss-checkbox', 'checked'),
-                State('state-search-form--use-whitening-checkbox', 'checked'),
-                State('active-search-tab', 'data'),
-                prevent_initial_call=True
-            )
-            def handle_image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
-                return self.image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab)
+        @app.callback(
+            Output('results-content', 'children'),
+            Output('results-card', 'style'),
+            Output('state-similarity-result-locations', 'data'),
+            Output('state-similarity-query-params', 'data'),
+            Input('state-search-form--search-btn', 'n_clicks'),
+            State('selected-location-id', 'data'),
+            State('state-search-form--borough-selector', 'value'),
+            State('state-search-form--year-selector', 'value'),
+            State('state-search-form--target-year-selector', 'value'),
+            State('state-search-form--limit-dropdown', 'value'),
+            State('state-search-form--media-type-selector', 'value'),
+            State('state-search-form--use-faiss-checkbox', 'checked'),
+            State('state-search-form--use-whitening-checkbox', 'checked'),
+            State('active-search-tab', 'data'),
+            prevent_initial_call=True
+        )
+        def handle_image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
+            return self.image_state_search(n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab)
 
         # Register IMAGE CHANGE search callback
-        if self.enable_image_search:
-            @app.callback(
-                Output('results-content', 'children', allow_duplicate=True),
-                Output('results-card', 'style', allow_duplicate=True),
-                Output('change-similarity-result-locations', 'data'),
-                Output('change-similarity-query-params', 'data'),
-                Input('change-search-form--search-btn', 'n_clicks'),
-                State('selected-location-id', 'data'),
-                State('change-search-form--borough-selector', 'value'),
-                State('change-search-form--year-from-selector', 'value'),
-                State('change-search-form--year-to-selector', 'value'),
-                State('change-search-form--limit-dropdown', 'value'),
-                State('change-search-form--media-type-selector', 'value'),
-                State('change-search-form--sequential-checkbox', 'value'),
-                State('change-search-form--use-faiss-checkbox', 'checked'),
-                State('change-search-form--use-whitening-checkbox', 'checked'),
-                State('active-search-tab', 'data'),
-                prevent_initial_call=True
-            )
-            def handle_image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab):
-                return self.image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab)
+        @app.callback(
+            Output('results-content', 'children', allow_duplicate=True),
+            Output('results-card', 'style', allow_duplicate=True),
+            Output('change-similarity-result-locations', 'data'),
+            Output('change-similarity-query-params', 'data'),
+            Input('change-search-form--search-btn', 'n_clicks'),
+            State('selected-location-id', 'data'),
+            State('change-search-form--borough-selector', 'value'),
+            State('change-search-form--year-from-selector', 'value'),
+            State('change-search-form--year-to-selector', 'value'),
+            State('change-search-form--limit-dropdown', 'value'),
+            State('change-search-form--media-type-selector', 'value'),
+            State('change-search-form--sequential-checkbox', 'value'),
+            State('change-search-form--use-faiss-checkbox', 'checked'),
+            State('change-search-form--use-whitening-checkbox', 'checked'),
+            State('active-search-tab', 'data'),
+            prevent_initial_call=True
+        )
+        def handle_image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab):
+            return self.image_change_search(n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, use_faiss, use_whitening, active_tab)
 
         # Register TEXT STATE search callback
-        if self.enable_text_search:
-            @app.callback(
-                Output('results-content', 'children', allow_duplicate=True),
-                Output('results-card', 'style', allow_duplicate=True),
-                Output('state-description-result-locations', 'data'),
-                Output('state-description-query-params', 'data'),
-                Input('state-text-search-form--search-btn', 'n_clicks'),
-                State('state-text-search-form--text-input', 'value'),
-                State('state-text-search-form--borough-selector', 'value'),
-                State('state-text-search-form--target-year-selector', 'value'),
-                State('state-text-search-form--limit-dropdown', 'value'),
-                State('state-text-search-form--media-type-selector', 'value'),
-                State('active-search-tab', 'data'),
-                prevent_initial_call=True
-            )
-            def handle_text_state_search(n_clicks, text, boroughs, target_year, limit, media_type, active_tab):
-                return self.text_state_search(n_clicks, text, boroughs, target_year, limit, media_type, active_tab)
+        @app.callback(
+            Output('results-content', 'children', allow_duplicate=True),
+            Output('results-card', 'style', allow_duplicate=True),
+            Output('state-description-result-locations', 'data'),
+            Output('state-description-query-params', 'data'),
+            Input('state-text-search-form--search-btn', 'n_clicks'),
+            State('state-text-search-form--text-input', 'value'),
+            State('state-text-search-form--borough-selector', 'value'),
+            State('state-text-search-form--target-year-selector', 'value'),
+            State('state-text-search-form--limit-dropdown', 'value'),
+            State('state-text-search-form--media-type-selector', 'value'),
+            State('active-search-tab', 'data'),
+            prevent_initial_call=True
+        )
+        def handle_text_state_search(n_clicks, text, boroughs, target_year, limit, media_type, active_tab):
+            return self.text_state_search(n_clicks, text, boroughs, target_year, limit, media_type, active_tab)
 
         # Register TEXT CHANGE search callback
-        if self.enable_text_search:
-            @app.callback(
-                Output('results-content', 'children', allow_duplicate=True),
-                Output('results-card', 'style', allow_duplicate=True),
-                Output('change-description-result-locations', 'data'),
-                Output('change-description-query-params', 'data'),
-                Input('change-text-search-form--search-btn', 'n_clicks'),
-                State('change-text-search-form--text-input', 'value'),
-                State('change-text-search-form--borough-selector', 'value'),
-                State('change-text-search-form--limit-dropdown', 'value'),
-                State('change-text-search-form--media-type-selector', 'value'),
-                State('change-text-search-form--sequential-checkbox', 'value'),
-                State('active-search-tab', 'data'),
-                prevent_initial_call=True
-            )
-            def handle_text_change_search(n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab):
-                return self.text_change_search(n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab)
+        @app.callback(
+            Output('results-content', 'children', allow_duplicate=True),
+            Output('results-card', 'style', allow_duplicate=True),
+            Output('change-description-result-locations', 'data'),
+            Output('change-description-query-params', 'data'),
+            Input('change-text-search-form--search-btn', 'n_clicks'),
+            State('change-text-search-form--text-input', 'value'),
+            State('change-text-search-form--borough-selector', 'value'),
+            State('change-text-search-form--limit-dropdown', 'value'),
+            State('change-text-search-form--media-type-selector', 'value'),
+            State('change-text-search-form--sequential-checkbox', 'value'),
+            State('active-search-tab', 'data'),
+            prevent_initial_call=True
+        )
+        def handle_text_change_search(n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab):
+            return self.text_change_search(n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab)
 
     def _header(self):
         return dbc.Row([
@@ -225,47 +205,10 @@ class Dashboard(BaseComponent):
             ])
         ], className='mt-3')
 
-    def _top_tab_layout(self, type:str) -> DashComponent:
-        """Create a top-level tab with nested sub-tabs for a search type."""
-        def _child_tab(mode) -> DashComponent:
-            search_form = getattr(self, f'{type}_{mode}_search_form')
-            if not search_form:
-                logger.error(f'Search form not found: {type}_{mode}_search_form')
-                return None
-
-            return dmc.TabsPanel(
-                html.Div([
-                    search_form.layout
-                ], style={'marginTop': '10px'}),
-                value=f'{type}-{mode}'
-            )
-
-        return dmc.TabsPanel(
-            dmc.Tabs([
-                dmc.TabsList([
-                    dmc.TabsTab('State Search', value=f'{type}-state'),
-                    dmc.TabsTab('Change Search', value=f'{type}-change')
-                ],
-                # Style nested tabs to be smaller and more subtle
-                style={'marginTop': '10px', 'marginBottom': '5px'}
-                ),
-                _child_tab('state'),
-                _child_tab('change')
-            ],
-            id=f'{type}-search-tabs',
-            value=f'{type}-state',  # Default to state search
-            orientation='horizontal',
-            variant='pills',  # Use pill style for nested tabs
-            color='gray'
-            ),
-            value=f'{type}-tabs'
-        )
 
     @property
     def layout(self) -> DashComponent:
         """Return the complete dashboard layout with flat 5-tab structure."""
-        print("DEBUG: Dashboard.layout property accessed")
-
         components = [
             # Header
             self._header(),
@@ -360,19 +303,19 @@ class Dashboard(BaseComponent):
         ]
 
         print(f"DEBUG: Layout created with {len(components)} components")
-        # Wrap in MantineProvider for dmc components
+        # Wrap in MantineProvider with dark theme for dmc components
         return dmc.MantineProvider(
             dbc.Container(
                 components,
                 fluid=True
-            )
+            ),
+            theme={"colorScheme": "dark"}
         )
 
 
     # ------- Search handlers  ------- #
     def image_state_search(self, n_clicks, location_id, boroughs, year, target_year, limit, media_type, use_faiss, use_whitening, active_tab):
-        from .. import state as app_state
-
+        from .. import context as app_ctx
         """Handle state search (image-to-image by year)."""
         # Only process if state tab is active
         #if active_tab != 'image-state':
@@ -387,8 +330,8 @@ class Dashboard(BaseComponent):
             )
 
         try:
-            results_set = self.image_state_search_form.execute_search(
-                state=app_state,
+            results_set = self.state_similarity_form.execute_search(
+                app_ctx=app_ctx,
                 location_id=location_id,
                 boroughs=boroughs,
                 year=year,
@@ -429,11 +372,6 @@ class Dashboard(BaseComponent):
         
     def image_change_search(self, n_clicks, location_id, boroughs, year_from, year_to, limit, media_type, sequential_value, active_tab, use_faiss, use_whitening):
         """Handle change search (temporal change detection)."""
-        from .. import state as app_state
-
-        # Only process if change tab is active
-        if active_tab != 'image-change':
-            return dbc.Alert("Please switch to Change Search tab", color='warning'), {'display': 'block'}, [], None
 
         if not location_id or not year_from or not year_to:
             return (
@@ -447,8 +385,8 @@ class Dashboard(BaseComponent):
         sequential = 'sequential' in (sequential_value or [])
 
         try:
-            results_set = self.image_change_search_form.execute_search(
-                state=app_state,
+            results_set = self.change_similarity_form.execute_search(
+                app_ctx=app_ctx,
                 location_id=location_id,
                 boroughs=boroughs,
                 year_from=year_from,
@@ -489,13 +427,8 @@ class Dashboard(BaseComponent):
             )
     
     def text_state_search(self, n_clicks, text, boroughs, target_year, limit, media_type, active_tab):
+        from .. import context as app_ctx
         """Handle text state search (text-to-image by year)."""
-        from .. import state as app_state
-
-        # Only process if text-state tab is active
-        if active_tab != 'text-state':
-            return dbc.Alert("Please switch to Text State Search tab", color='warning'), {'display': 'block'}, [], None
-
         if not text:
             return (
                 dbc.Alert("Please enter search text", color='warning'),
@@ -505,8 +438,8 @@ class Dashboard(BaseComponent):
             )
 
         try:
-            results_set = self.text_state_search_form.execute_search(
-                state=app_state,
+            results_set = self.state_description_form.execute_search(
+                state=app_ctx,
                 text=text,
                 boroughs=boroughs,
                 target_year=target_year,
@@ -519,7 +452,7 @@ class Dashboard(BaseComponent):
                     dbc.Alert(f"No results found", color='info'),
                     {'display': 'block'},
                     [],
-                    {'year': year}
+                    {'target_year': target_year}
                 )
 
             # Create results panel from results set
@@ -530,7 +463,7 @@ class Dashboard(BaseComponent):
                 results_panel.content,
                 {'display': 'block'},
                 result_location_ids,
-                {'year': year, 'target_year': target_year, 'text': text}
+                {'target_year': target_year, 'text': text}
             )
 
         except Exception as e:
@@ -544,11 +477,7 @@ class Dashboard(BaseComponent):
 
     def text_change_search(self, n_clicks, text, boroughs, limit, media_type, sequential_value, active_tab):
         """Handle text change search (text-to-image temporal change detection)."""
-        from .. import state as app_state
-
-        # Only process if text-change tab is active
-        if active_tab != 'text-change':
-            return dbc.Alert("Please switch to Text Change Search tab", color='warning'), {'display': 'block'}, [], None
+        from .. import context as app_ctx
 
         if not text:
             return (
@@ -562,8 +491,8 @@ class Dashboard(BaseComponent):
         sequential = 'sequential' in (sequential_value or [])
 
         try:
-            results_set = self.text_change_search_form.execute_search(
-                state=app_state,
+            results_set = self.change_description_form.execute_search(
+                app_ctx=app_ctx,
                 text=text,
                 boroughs=boroughs,
                 limit=limit,
@@ -576,7 +505,7 @@ class Dashboard(BaseComponent):
                     dbc.Alert(f"No results found", color='info'),
                     {'display': 'block'},
                     [],
-                    {'year_from': year_from, 'year_to': year_to}
+                    {}
                 )
 
             # Create results panel from results set
@@ -587,7 +516,7 @@ class Dashboard(BaseComponent):
                 results_panel.content,
                 {'display': 'block'},
                 result_location_ids,
-                {'year_from': year_from, 'year_to': year_to, 'sequential': sequential, 'text': text}
+                {'sequential': sequential, 'text': text}
             )
 
         except Exception as e:

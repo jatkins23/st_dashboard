@@ -4,8 +4,8 @@ from dash import Input, Output, State
 import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
-from ... import state
-from streettransformer.query.queries.ask import TextToImageChangeQuery
+from streettransformer.query.queries import ChangeDescriptionQuery
+from streettransformer.db.database import get_connection
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class TextChangeSearchForm(BaseSearchForm):
 
     SEARCH_TYPE = 'change-description'
     TAB_LABEL = 'Change Description'
-    QUERY_CLASS = TextToImageChangeQuery
+    QUERY_CLASS = ChangeDescriptionQuery
     RESULT_TYPE = 'change'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
@@ -52,11 +52,11 @@ class TextChangeSearchForm(BaseSearchForm):
         """No year inputs for text change search."""
         return []
 
-    def execute_search(self, state, text, limit, media_type, sequential, boroughs=None, **kwargs):
+    def execute_search(self, app_ctx, text, limit, media_type, sequential, boroughs=None, **kwargs):
         """Execute change text search (text-to-image temporal change detection).
 
         Args:
-            state: Application state module
+            app_ctx: Application app_ctx module
             text: Search text query
             limit: Maximum number of results
             media_type: Type of media to search
@@ -66,9 +66,6 @@ class TextChangeSearchForm(BaseSearchForm):
         Returns:
             ChangeResultsSet with enriched results
         """
-        from streettransformer.db.database import get_connection
-        from streettransformer.query.queries.ask import TextToImageChangeQuery
-
         # Configuration settings
         use_faiss_enabled = True
         use_whitening_enabled = False
@@ -77,9 +74,9 @@ class TextChangeSearchForm(BaseSearchForm):
         selected_media_type = media_type if media_type else 'image'
 
         # Create and execute query
-        query = TextToImageChangeQuery(
-            config=state.CONFIG,
-            db=state.DB,
+        query = ChangeDescriptionQuery(
+            config=app_ctx.CONFIG,
+            db=app_ctx.DB,
             text=text,
             limit=limit,
             media_types=[selected_media_type],
@@ -93,19 +90,19 @@ class TextChangeSearchForm(BaseSearchForm):
         # Enrich results with street names
         # Note: Change results have before_path and after_path already set by the query
         if len(results_set) > 0:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 for result in results_set:
-                    result.enrich_street_names(con, state.CONFIG.universe_name)
+                    result.enrich_street_names(con, app_ctx.CONFIG.universe_name)
 
         # Filter by borough if specified
         if boroughs and len(boroughs) > 0:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 # Get borough for each result location
                 location_ids = [r.location_id for r in results_set]
                 if location_ids:
                     query = f"""
                         SELECT location_id, boro
-                        FROM {state.CONFIG.universe_name}.locations
+                        FROM {app_ctx.CONFIG.universe_name}.locations
                         WHERE location_id IN ({','.join(map(str, location_ids))})
                     """
                     boro_df = con.execute(query).df()

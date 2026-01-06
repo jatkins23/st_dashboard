@@ -27,7 +27,7 @@
 
 .Select-menu-outer .Select-option.is-selected {
     background-color: #007bff !important;
-    color: #fff !important;
+    color: #333 !important;
 }
 
 /* For the newer react-select class names */

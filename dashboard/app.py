@@ -8,6 +8,7 @@ Usage:
 import argparse
 import logging
 from pathlib import Path
+import os
 
 from streettransformer import STConfig, EmbeddingDB
 from streettransformer.db.database import get_connection
@@ -16,13 +17,11 @@ import dash_bootstrap_components as dbc
 from .components.dashboard import Dashboard
 
 from .utils.map_utils import load_location_coordinates, load_projects, load_all_streets, load_all_boroughs
-from . import state
 
 logger = logging.getLogger(__name__)
 
 def main():
     """Main entry point."""
-    import os
 
     parser = argparse.ArgumentParser(description="Simple Image Embedding Dashboard")
     parser.add_argument(
@@ -104,7 +103,8 @@ def main():
     logger.info(f"Loaded {len(all_boroughs)} unique boroughs")
 
     # Initialize global state
-    state.initialize_state(config, db, available_years, all_locations_df, projects_df)
+    from . import context as app_ctx
+    app_ctx.initialize_context(config, db, available_years, all_locations_df, projects_df)
 
     # Create app and layout
     assets_folder = Path(__file__).parent.parent / 'assets'
@@ -126,9 +126,16 @@ def main():
         all_boroughs=all_boroughs
     )
 
-    # Set layout as a function to enable hot reloading
+    # # Set layout as a function to enable hot reloading
     def serve_layout():
         return dashboard.layout
+    def serve_layout_fake():
+        return dbc.Container(
+            dbc.Alert("Dashboard is loading...", color="info"),
+            className="p-5"
+        )
+    
+    #app.layout = serve_layout_fake()
 
     app.layout = serve_layout
 
@@ -146,6 +153,7 @@ def main():
     print(f"{'='*60}\n")
 
     app.run(debug=args.debug, host=args.host, port=args.port)
+    app.run(debug=False, host='127.0.0.1', port=8054)
 
 
 if __name__ == '__main__':

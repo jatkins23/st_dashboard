@@ -8,7 +8,6 @@ from typing import Optional, List
 import logging
 
 from streettransformer.db.database import get_connection
-from ... import state
 from ...utils.display import encode_pdf_to_base64
 from ...utils.document_cache import DocumentImgCache
 from .base_modality_viewer import BaseModalityViewer
@@ -52,14 +51,16 @@ class DetailsDocumentViewer(BaseModalityViewer):
         Returns:
             DataFrame with page_file_path column
         """
+        from ... import context as app_ctx
+
         if not self.location_id:
             return pd.DataFrame()
 
         try:
-            with get_connection(state.CONFIG.database_path, read_only=True) as con:
+            with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
                 query = f"""
                     SELECT page_file_path
-                    FROM {state.CONFIG.universe_name}._location_to_document_page
+                    FROM {app_ctx.CONFIG.universe_name}._location_to_document_page
                     WHERE location_id = '{self.location_id}'
                     ORDER BY page_file_path
                 """
@@ -80,6 +81,8 @@ class DetailsDocumentViewer(BaseModalityViewer):
         Returns:
             List of carousel items
         """
+        from ... import context as app_ctx
+
         carousel_items = []
         DATA_PATH = Path(str(os.getenv('DATA_PATH'))).expanduser()
 
@@ -93,7 +96,7 @@ class DetailsDocumentViewer(BaseModalityViewer):
         logger.info(f"Loading documents {start_idx} to {actual_end} (of {len(self.documents_df)} total)")
 
         for idx, doc_row in enumerate(paginated_docs.itertuples(), start=start_idx):
-            doc_path = (DATA_PATH.parent / doc_row.page_file_path.replace('pages', f'{state.CONFIG.universe_name}/pages')).expanduser()
+            doc_path = (DATA_PATH.parent / doc_row.page_file_path.replace('pages', f'{app_ctx.CONFIG.universe_name}/pages')).expanduser()
 
             if doc_path.exists():
                 # Use cache for PDF conversion
@@ -167,7 +170,7 @@ class DetailsDocumentViewer(BaseModalityViewer):
                 dmc.CarouselSlide(
                     html.Div([
                         dmc.Text(item['header'], fw=600, size='sm', mb='xs'),
-                        html.Img(src=item['src'], style={'width': '100%', 'height': 'auto'}),
+                        html.Img(src=item['src'], className='carousel-image'),
                         dmc.Text(item['caption'], size='xs', c='dimmed', mt='xs')
                     ])
                 )

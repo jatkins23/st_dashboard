@@ -6,8 +6,8 @@ import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
 from .utils import filter_street_options_by_selection
-from ... import state as app_state
-from streettransformer.query.queries.ask import ImageToImageDissimilarityQuery
+# from ... import context as app_ctx
+from streettransformer.query.queries import StateDissimilarityQuery
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class DissimilaritySearchForm(BaseSearchForm):
 
     SEARCH_TYPE = 'dissimilarity'
     TAB_LABEL = 'State Dissimilarity'
-    QUERY_CLASS = ImageToImageDissimilarityQuery
+    QUERY_CLASS = StateDissimilarityQuery
     RESULT_TYPE = 'change'
 
     def __init__(self, available_years: list, all_streets: list, all_boroughs: list = None):
@@ -105,7 +105,7 @@ class DissimilaritySearchForm(BaseSearchForm):
             db=state.db,
             location_id=location_id,
             year=year_start,  # For StateMixin compatibility
-            year_start=int(year_start),
+            year_start=int(year_start), 
             year_end=int(year_end),
             comparison_strategy=comparison_strategy,
             limit=int(limit),

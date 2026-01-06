@@ -1,16 +1,13 @@
-from .ask import ImageToImageStateQuery, ImageToImageChangeQuery
-from .results_instances import QueryResultInstance, StateResultInstance, ChangeResultInstance
-from .results_sets import QueryResultsSet, StateResultsSet, ChangeResultsSet
+from .change_similarity_image_query import ChangeSimilarityQuery
+from .state_similarity_image_query import StateSimilarityQuery
+from .state_description_query import StateDescriptionQuery
+from .change_description_query import ChangeDescriptionQuery
+from .state_dissimilarity_image_query import StateDissimilarityQuery
 
 __all__ = [
-    'ImageToImageStateQuery',
-    'ImageToImageChangeQuery',
-    
-    'QueryResultInstance',
-    'StateResultInstance',
-    'ChangeResultInstance'
-    
-    'QueryResultsSet',
-    'StateResultsSet',
-    'ChangeResultsSet'
+    'ChangeSimilarityQuery',
+    'StateSimilarityQuery',
+    'StateDescriptionQuery',
+    'ChangeDescriptionQuery',
+    'StateDissimilarityQuery'
 ]

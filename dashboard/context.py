@@ -8,7 +8,7 @@ ALL_LOCATIONS_DF = None
 PROJECTS_DF = None
 
 
-def initialize_state(config, db, available_years, locations_df, projects_df):
+def initialize_context(config, db, available_years, locations_df, projects_df):
     """Initialize global state.
 
     Args:

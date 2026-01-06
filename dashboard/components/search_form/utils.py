@@ -1,12 +1,12 @@
 """Shared utilities for search forms."""
 
-from streettransformer.db.database import get_connection
 import logging
+from streettransformer.db.database import get_connection
 
 logger = logging.getLogger(__name__)
 
 
-def filter_street_options_by_selection(selected_streets, current_data, state_module):
+def filter_street_options_by_selection(selected_streets, current_data, app_ctx):
     """Filter street options to only show valid combinations.
 
     When streets are selected, only show streets that appear in locations
@@ -15,7 +15,7 @@ def filter_street_options_by_selection(selected_streets, current_data, state_mod
     Args:
         selected_streets: List of currently selected street names
         current_data: Current dropdown data
-        state_module: Application state module with CONFIG
+        app_ctx: Application context module with CONFIG
 
     Returns:
         List of filtered street options in format [{"label": str, "value": str}]
@@ -27,7 +27,7 @@ def filter_street_options_by_selection(selected_streets, current_data, state_mod
 
     try:
         logger.info(f"Filtering streets for selection: {selected_streets}")
-        with get_connection(state_module.CONFIG.database_path, read_only=True) as con:
+        with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
             # Build conditions to find locations with ALL selected streets
             street_conditions = []
             for street in selected_streets:
@@ -43,22 +43,22 @@ def filter_street_options_by_selection(selected_streets, current_data, state_mod
             query = f"""
                 WITH matching_locations AS (
                     SELECT location_id
-                    FROM {state_module.CONFIG.universe_name}.locations
+                    FROM {app_ctx.CONFIG.universe_name}.locations
                     WHERE {where_clause}
                 ),
                 all_streets AS (
                     SELECT street1 as street
-                    FROM {state_module.CONFIG.universe_name}.locations
+                    FROM {app_ctx.CONFIG.universe_name}.locations
                     WHERE location_id IN (SELECT location_id FROM matching_locations)
                       AND street1 IS NOT NULL
                     UNION
                     SELECT street2 as street
-                    FROM {state_module.CONFIG.universe_name}.locations
+                    FROM {app_ctx.CONFIG.universe_name}.locations
                     WHERE location_id IN (SELECT location_id FROM matching_locations)
                       AND street2 IS NOT NULL
                     UNION
                     SELECT UNNEST(additional_streets) as street
-                    FROM {state_module.CONFIG.universe_name}.locations
+                    FROM {app_ctx.CONFIG.universe_name}.locations
                     WHERE location_id IN (SELECT location_id FROM matching_locations)
                       AND additional_streets IS NOT NULL
                 )
@@ -83,23 +83,21 @@ def filter_street_options_by_selection(selected_streets, current_data, state_mod
         return current_data
 
 
-def get_location_from_streets(selected_streets, state):
+def get_location_from_streets(selected_streets, app_ctx):
     """Get location_id from selected street names.
 
     Args:
         selected_streets: List of selected street names
-        state: Application state module
+        app_ctx: Application context module
 
     Returns:
         location_id if found, None otherwise
     """
-    from streettransformer.db.database import get_connection
-
     if not selected_streets or len(selected_streets) == 0:
         return None
 
     try:
-        with get_connection(state.CONFIG.database_path, read_only=True) as con:
+        with get_connection(app_ctx.CONFIG.database_path, read_only=True) as con:
             # Find locations that match ALL selected streets
             street_conditions = []
             for street in selected_streets:
@@ -113,7 +111,7 @@ def get_location_from_streets(selected_streets, state):
 
             query = f"""
                 SELECT location_id
-                FROM {state.CONFIG.universe_name}.locations
+                FROM {app_ctx.CONFIG.universe_name}.locations
                 WHERE {where_clause}
                 LIMIT 1
             """
