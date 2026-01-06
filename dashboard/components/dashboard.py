@@ -104,7 +104,7 @@ class Dashboard(BaseComponent):
         self.results_panel.register_callbacks(app)
         self.details_panel.register_callbacks(app)
 
-        # Track active search tab (flat structure - tab value is the search type)
+        # Track active search tab (nested structure)
         @app.callback(
             Output('active-search-tab', 'data'),
             Input('search-tabs', 'value')
@@ -115,6 +115,18 @@ class Dashboard(BaseComponent):
             Other components (map, details panel) use this to react to tab changes.
             """
             return tab_value
+
+        # Show/hide map container based on master tab
+        @app.callback(
+            Output('search-map-container', 'style'),
+            Input('master-tabs', 'value')
+        )
+        def toggle_map_visibility(master_tab_value):
+            """Show map only when Search master tab is active."""
+            if master_tab_value == 'master-search':
+                return {'display': 'block'}
+            else:
+                return {'display': 'none'}
 
         # Register IMAGE STATE search callback
         @app.callback(
@@ -208,78 +220,171 @@ class Dashboard(BaseComponent):
 
     @property
     def layout(self) -> DashComponent:
-        """Return the complete dashboard layout with flat 5-tab structure."""
+        """Return the complete dashboard layout with master tab structure."""
         components = [
             # Header
             self._header(),
 
-            # Flat 5-tab structure (explicit, not dynamically generated)
+            # Master tabs: Search, Data, Paper, About, Help
             dmc.Tabs(
                 [
+                    # Master tab list
                     dmc.TabsList(
                         [
-                            dmc.TabsTab('State Similarity', value='state-similarity'),
-                            dmc.TabsTab('State Dissimilarity', value='dissimilarity'),
-                            dmc.TabsTab('State Description', value='state-description'),
-                            dmc.TabsTab('Change Similarity', value='change-similarity'),
-                            dmc.TabsTab('Change Description', value='change-description'),
+                            dmc.TabsTab('Search', value='master-search'),
+                            dmc.TabsTab('Data', value='master-data'),
+                            dmc.TabsTab('Paper', value='master-paper'),
+                            dmc.TabsTab('About', value='master-about'),
+                            dmc.TabsTab('Help', value='master-help'),
                         ],
                         style={
-                            'marginBottom': '15px',
-                            'borderBottom': '2px solid #dee2e6',
-                            'gap': '8px'
+                            'marginBottom': '20px',
+                            'borderBottom': '3px solid #dee2e6',
+                            'gap': '12px'
                         }
                     ),
-                    # Tab panels with search forms
-                    dmc.TabsPanel(self.state_similarity_form.layout, value='state-similarity'),
-                    dmc.TabsPanel(self.dissimilarity_form.layout, value='dissimilarity'),
-                    dmc.TabsPanel(self.state_description_form.layout, value='state-description'),
-                    dmc.TabsPanel(self.change_similarity_form.layout, value='change-similarity'),
-                    dmc.TabsPanel(self.change_description_form.layout, value='change-description'),
+
+                    # Master Tab Panel 1: Search (contains the 5 search tabs)
+                    dmc.TabsPanel(
+                        dmc.Tabs(
+                            [
+                                dmc.TabsList(
+                                    [
+                                        dmc.TabsTab('State Similarity', value='state-similarity'),
+                                        dmc.TabsTab('State Dissimilarity', value='dissimilarity'),
+                                        dmc.TabsTab('State Description', value='state-description'),
+                                        dmc.TabsTab('Change Similarity', value='change-similarity'),
+                                        dmc.TabsTab('Change Description', value='change-description'),
+                                    ],
+                                    style={
+                                        'marginBottom': '15px',
+                                        'borderBottom': '2px solid #495057',
+                                        'gap': '8px'
+                                    }
+                                ),
+                                # Sub-tab panels with search forms
+                                dmc.TabsPanel(self.state_similarity_form.layout, value='state-similarity'),
+                                dmc.TabsPanel(self.dissimilarity_form.layout, value='dissimilarity'),
+                                dmc.TabsPanel(self.state_description_form.layout, value='state-description'),
+                                dmc.TabsPanel(self.change_similarity_form.layout, value='change-similarity'),
+                                dmc.TabsPanel(self.change_description_form.layout, value='change-description'),
+                            ],
+                            id='search-tabs',
+                            value='state-similarity',  # Default to first search tab
+                            orientation='horizontal',
+                            variant='pills',
+                            color='blue',
+                            radius='md',
+                            styles={
+                                'tab': {
+                                    'fontSize': '14px',
+                                    'fontWeight': 500,
+                                    'padding': '10px 20px',
+                                    'height': '42px',
+                                    '&[data-active]': {
+                                        'backgroundColor': '#1971c2',
+                                        'color': 'white',
+                                        'boxShadow': '0 2px 6px rgba(25, 113, 194, 0.4)'
+                                    },
+                                    '&:not([data-active])': {
+                                        'backgroundColor': '#2c2e33',
+                                        'color': '#909296'
+                                    },
+                                    '&:hover:not([data-active])': {
+                                        'backgroundColor': '#373A40',
+                                        'color': '#c1c2c5'
+                                    }
+                                }
+                            },
+                            className='mb-3'
+                        ),
+                        value='master-search'
+                    ),
+
+                    # Master Tab Panel 2: Data
+                    dmc.TabsPanel(
+                        dbc.Container([
+                            dmc.Title("Data", order=2, mt='lg', mb='md'),
+                            dmc.Text("Data information and downloads will go here.", size='md', c='dimmed')
+                        ], fluid=True),
+                        value='master-data'
+                    ),
+
+                    # Master Tab Panel 3: Paper
+                    dmc.TabsPanel(
+                        dbc.Container([
+                            dmc.Title("Paper", order=2, mt='lg', mb='md'),
+                            dmc.Text("Research paper and methodology will go here.", size='md', c='dimmed')
+                        ], fluid=True),
+                        value='master-paper'
+                    ),
+
+                    # Master Tab Panel 4: About
+                    dmc.TabsPanel(
+                        dbc.Container([
+                            dmc.Title("About", order=2, mt='lg', mb='md'),
+                            dmc.Text("About this project will go here.", size='md', c='dimmed')
+                        ], fluid=True),
+                        value='master-about'
+                    ),
+
+                    # Master Tab Panel 5: Help
+                    dmc.TabsPanel(
+                        dbc.Container([
+                            dmc.Title("Help", order=2, mt='lg', mb='md'),
+                            dmc.Text("Help documentation will go here.", size='md', c='dimmed')
+                        ], fluid=True),
+                        value='master-help'
+                    ),
                 ],
-                id='search-tabs',
-                value='state-similarity',  # Default to first tab
+                id='master-tabs',
+                value='master-search',  # Default to search master tab
                 orientation='horizontal',
                 variant='pills',
-                color='blue',
-                radius='md',
+                color='cyan',
+                radius='lg',
                 styles={
                     'tab': {
-                        'fontSize': '16px',
-                        'fontWeight': 600,
-                        'padding': '12px 24px',
-                        'height': '48px',
+                        'fontSize': '18px',
+                        'fontWeight': 700,
+                        'padding': '14px 28px',
+                        'height': '52px',
                         '&[data-active]': {
-                            'backgroundColor': '#1971c2',
+                            'backgroundColor': '#0c8599',
                             'color': 'white',
-                            'boxShadow': '0 2px 8px rgba(25, 113, 194, 0.5)'
+                            'boxShadow': '0 4px 12px rgba(12, 133, 153, 0.6)'
                         },
                         '&:not([data-active])': {
-                            'backgroundColor': '#2c2e33',
-                            'color': '#909296'
+                            'backgroundColor': '#25262b',
+                            'color': '#868e96'
                         },
                         '&:hover:not([data-active])': {
-                            'backgroundColor': '#373A40',
-                            'color': '#c1c2c5'
+                            'backgroundColor': '#2c2e33',
+                            'color': '#adb5bd'
                         }
                     }
                 },
-                className='mb-3'
+                className='mb-4'
             ),
 
-            # Map with floating panels (shared across all tabs)
-            dbc.Row([
-                dbc.Col([
-                    html.Div([
-                        # Map
-                        self.map_component.layout,
-                        # Floating results panel
-                        self.results_panel(),
-                        # Floating details panel
-                        self.details_panel()
-                    ], style={'position': 'relative'})
-                ]),
-            ], className='mb-3'),
+            # Map with floating panels (visible in search tab only)
+            html.Div(
+                id='search-map-container',
+                children=[
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div([
+                                # Map
+                                self.map_component.layout,
+                                # Floating results panel
+                                self.results_panel(),
+                                # Floating details panel
+                                self.details_panel()
+                            ], style={'position': 'relative'})
+                        ]),
+                    ], className='mb-3'),
+                ]
+            ),
 
             # Data stores
             dcc.Store(id='active-search-tab', data='state-similarity'),  # Track which tab is active
