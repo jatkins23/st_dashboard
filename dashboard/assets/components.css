@@ -100,3 +100,10 @@
 .mantine-MultiSelect-item[data-selected]:hover {
     background-color: #1177bb;
 }
+
+/* Map Tooltips */
+.hoverlayer .hovertext {
+    max-width: 300px !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+}

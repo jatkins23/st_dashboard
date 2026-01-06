@@ -4,12 +4,13 @@ import plotly.graph_objects as go
 import pandas as pd
 from pathlib import Path
 import logging
+import textwrap
 
 logger = logging.getLogger(__name__)
 
 SAVED_DATA_PATH = Path('dashboard/data')
 
-def _create_project_hover_text(df: pd.DataFrame, prefix: str = "") -> pd.Series:
+def _create_project_hover_text(df: pd.DataFrame, prefix: str = "", max_width:int=50) -> pd.Series:
     """Create hover text for project markers.
 
     Args:
@@ -19,22 +20,23 @@ def _create_project_hover_text(df: pd.DataFrame, prefix: str = "") -> pd.Series:
     Returns:
         Series with formatted hover text
     """
-    def format_row(row):
+    def format_project_hover(row):
         parts = []
         if prefix:
-            parts.append(f"<b>{prefix}</b><br>")
+            parts.append(f"<b>{prefix}</b>")
         parts.extend([
-            f"<b>{row.get('Project Title', 'N/A')}</b><br>",
-            f"Project ID: {row.get('ProjectID', 'N/A')}<br>",
-            f"Lead Agency: {row.get('Lead Agency', 'N/A')}<br>",
-            f"Year: {row.get('Project Year', 'N/A')}<br>",
-            f"Status: {row.get('Project Status', 'N/A')}<br>",
-            f"Safety Scope: {row.get('Safety Scope', 'N/A')}<br>",
+            f"<b>{row.get('Project Title', 'N/A')}</b>",
+            f"Project ID: {row.get('ProjectID', 'N/A')}",
+            f"Lead Agency: {row.get('Lead Agency', 'N/A')}",
+            f"Year: {row.get('Project Year', 'N/A')}",
+            f"Status: {row.get('Project Status', 'N/A')}",
+            f"Safety Scope: {row.get('Safety Scope', 'N/A')}",
             f"Total Scope: {row.get('Total Scope', 'N/A')}"
         ])
-        return "".join(parts)
+        # print(parts)
+        return "<br>".join(parts)
 
-    return df.apply(format_row, axis=1)
+    return df.apply(format_project_hover, axis=1)
 
 
 def _add_project_trace(fig: go.Figure, df: pd.DataFrame, name: str, color: str,
