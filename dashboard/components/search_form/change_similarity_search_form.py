@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ImageChangeSearchForm(BaseSearchForm):
+class ChangeSimilaritySearchForm(BaseSearchForm):
     """Form for ImageToImage change search.
 
     This form provides:

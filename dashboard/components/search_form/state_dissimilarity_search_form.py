@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class DissimilaritySearchForm(BaseSearchForm):
+class StateDissimilaritySearchForm(BaseSearchForm):
     """Form for longitudinal dissimilarity search.
 
     Analyzes a single location over time to find when it changed most.

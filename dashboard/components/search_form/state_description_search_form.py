@@ -1,62 +1,54 @@
-"""State search form for image-to-image state search (year-based)."""
+"""State text search form for text-to-image state search (year-based)."""
 
 from dash import Input, Output, State
 import dash_mantine_components as dmc
 
 from .base_search_form import BaseSearchForm
-from .utils import filter_street_options_by_selection, get_location_from_streets
-from streettransformer.query.queries import StateSimilarityQuery
+from streettransformer.query.queries import StateDescriptionQuery
 from streettransformer.db.database import get_connection
 
 import logging
 logger = logging.getLogger(__name__)
 
-
-class ImageStateSearchForm(BaseSearchForm):
-    """Form for ImageToImage state search.
+class StateDescriptionSearchForm(BaseSearchForm):
+    """Form for TextToImage state search.
 
     This form provides:
-    - Street selector
+    - Text input
     - Year selector
     - Target year selector (optional)
     - Limit, media type, and search options
     - Search button
     """
 
-    SEARCH_TYPE = 'state-similarity'
-    TAB_LABEL = 'State Similarity'
-    QUERY_CLASS = StateSimilarityQuery
+    SEARCH_TYPE = 'state-description'
+    TAB_LABEL = 'State Description'
+    QUERY_CLASS = StateDescriptionQuery
     RESULT_TYPE = 'state'
 
     def __init__(self, available_years: list, all_streets: list = None, all_boroughs: list = None):
-        """Initialize the state search form.
+        """Initialize the state text search form.
 
         Args:
             available_years: List of available years for dropdowns
-            all_streets: List of all unique street names
+            all_streets: Not used for text search, but kept for consistency
             all_boroughs: List of all unique borough names
         """
         super().__init__(
             available_years=available_years,
             all_streets=all_streets,
             all_boroughs=all_boroughs,
-            id_prefix='state-search-form',
-            title='Image-to-Image State Search'
+            id_prefix='state-text-search-form',
+            title='Text-to-Image State Search'
         )
 
     def _input_selector(self):
-        """Return street selector for image-based search."""
-        return self._street_selector()
+        """Return text input for text-based search."""
+        return self._text_input()
 
     def _query_inputs(self) -> list:
-        """Year and optional target year inputs."""
+        """Target year input only (no base year for text search)."""
         return [
-            # Year selector
-            dmc.GridCol(
-                self._year_selector('year-selector', 'Year'),
-                span=2
-            ),
-
             # Target year (optional)
             dmc.GridCol(
                 self._year_selector('target-year-selector', 'Target Year (optional)'),
@@ -64,13 +56,12 @@ class ImageStateSearchForm(BaseSearchForm):
             ),
         ]
 
-    def execute_search(self, app_ctx, location_id, year, target_year, limit, media_type, use_faiss:bool, use_whitening:bool, boroughs=None, **kwargs):
-        """Execute state search (image-to-image by year).
+    def execute_search(self, app_ctx, text, target_year, limit, media_type, boroughs=None, **kwargs):
+        """Execute state text search (text-to-image by year).
 
         Args:
             state: Application state module
-            location_id: Location to search from
-            year: Year of the query image
+            text: Search text query
             target_year: Optional target year filter
             limit: Maximum number of results
             media_type: Type of media to search
@@ -80,21 +71,23 @@ class ImageStateSearchForm(BaseSearchForm):
             StateResultsSet with enriched results
         """
 
+        # Configuration settings
+        use_faiss_enabled = True
+        use_whitening_enabled = False
+
         # Default to 'image' if no media type selected
         selected_media_type = media_type if media_type else 'image'
 
         # Create and execute query
-        query = StateSimilarityQuery(
+        query = StateDescriptionQuery(
             config=app_ctx.CONFIG,
             db=app_ctx.DB,
-            location_id=location_id,
-            year=year,
+            text=text,
             target_years=[target_year] if target_year else None,
             limit=limit,
             media_types=[selected_media_type],
-            use_faiss=use_faiss,
-            use_whitening=use_whitening,
-            remove_self=True
+            use_faiss=use_faiss_enabled,
+            use_whitening=use_whitening_enabled
         )
 
         results_set = query.search()
@@ -127,38 +120,10 @@ class ImageStateSearchForm(BaseSearchForm):
         return results_set
 
     def register_callbacks(self, app):
-        """Register callbacks for the state search form.
+        """Register callbacks for the state text search form.
 
-        Registers:
-        1. Street filtering callback - updates available street options
-        2. Location selection callback - converts streets to location_id
+        For text search, no street filtering is needed.
         """
-        # Store the full street list for resetting
-        all_streets_data = [{"label": s, "value": s} for s in self.all_streets]
-
-        @app.callback(
-            Output(self.Id('street-selector'), 'data'),
-            Input(self.Id('street-selector'), 'value'),
-            prevent_initial_call=False
-        )
-        def filter_street_options_state(selected_streets):
-            """Filter street options to only show valid combinations."""
-            from ... import context as app_ctx
-            logger.info(f"State street filter callback triggered. Selected: {selected_streets}")
-            # Always pass the full street list, not the current filtered data
-            result = filter_street_options_by_selection(selected_streets, all_streets_data, app_ctx)
-            logger.info(f"Filtered options count: {len(result) if result else 0}")
-            return result
-
-        @app.callback(
-            Output('selected-location-id', 'data', allow_duplicate=True),
-            Input(self.Id('street-selector'), 'value'),
-            prevent_initial_call='initial_duplicate'
-        )
-        def update_selected_location_state(selected_streets):
-            """Convert selected streets to location_id."""
-            from ... import context as app_ctx
-            # Only update if at least 2 streets are selected
-            if not selected_streets or len(selected_streets) < 2:
-                return None
-            return get_location_from_streets(selected_streets, app_ctx)
+        # No callbacks needed for text search form
+        # Text input is handled directly in the search callback
+        pass

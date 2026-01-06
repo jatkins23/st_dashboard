@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class TextChangeSearchForm(BaseSearchForm):
+class ChangeDescriptionSearchForm(BaseSearchForm):
     """Form for TextToImage change search.
 
     This form provides:

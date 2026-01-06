@@ -9,11 +9,11 @@ from .base import BaseComponent
 from .results import ResultsPanel
 from .details import DetailsPanel
 from .search_form import (
-    ImageStateSearchForm,
-    ImageChangeSearchForm,
-    TextStateSearchForm,
-    TextChangeSearchForm,
-    DissimilaritySearchForm
+    StateSimilaritySearchForm,
+    ChangeSimilaritySearchForm,
+    StateDescriptionSearchForm,
+    ChangeDescriptionSearchForm,
+    StateDissimilaritySearchForm
 )
 from .map_component import Map
 
@@ -50,31 +50,31 @@ class Dashboard(BaseComponent):
         self.all_boroughs = all_boroughs or []
 
         # Create all 5 search form instances explicitly
-        self.state_similarity_form = ImageStateSearchForm(
+        self.state_similarity_form = StateSimilaritySearchForm(
             available_years=available_years,
             all_streets=all_streets,
             all_boroughs=all_boroughs
         )
 
-        self.dissimilarity_form = DissimilaritySearchForm(
+        self.dissimilarity_form = StateDissimilaritySearchForm(
             available_years=available_years,
             all_streets=all_streets,
             all_boroughs=all_boroughs
         )
 
-        self.state_description_form = TextStateSearchForm(
+        self.state_description_form = StateDescriptionSearchForm(
             available_years=available_years,
             all_streets=all_streets,
             all_boroughs=all_boroughs
         )
 
-        self.change_similarity_form = ImageChangeSearchForm(
+        self.change_similarity_form = ChangeSimilaritySearchForm(
             available_years=available_years,
             all_streets=all_streets,
             all_boroughs=all_boroughs
         )
 
-        self.change_description_form = TextChangeSearchForm(
+        self.change_description_form = ChangeDescriptionSearchForm(
             available_years=available_years,
             all_streets=all_streets,
             all_boroughs=all_boroughs
