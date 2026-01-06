@@ -16,7 +16,7 @@ from dash import Dash
 import dash_bootstrap_components as dbc
 from .components.dashboard import Dashboard
 
-from .utils.map_utils import load_location_coordinates, load_projects, load_all_streets, load_all_boroughs
+from .components.map.map_utils import load_location_coordinates, load_projects, load_all_streets, load_all_boroughs
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from dash import dcc, Input, Output
 from dash.development.base_component import Component as DashComponent
 
 from .base import BaseComponent
-from ..utils.map_utils import create_location_map
+from .map.map_utils import create_location_map
 
 import logging
 logger = logging.getLogger(__name__)
