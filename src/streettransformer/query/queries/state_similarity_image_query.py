@@ -41,6 +41,7 @@ class StateSimilarityQuery(BaseQuery, StateMixin):
         )
 
     def _execute_search(self):
+        """Execute search from database"""
         logger = logging.getLogger(__name__)
 
         # Build media_type filter - default to 'image' if not specified

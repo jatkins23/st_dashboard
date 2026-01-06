@@ -15,7 +15,7 @@ from .search_form import (
     ChangeDescriptionSearchForm,
     StateDissimilaritySearchForm
 )
-from .search.map_component import Map
+from .map import Map
 
 import logging
 logger = logging.getLogger(__name__)
@@ -284,7 +284,7 @@ class Dashboard(BaseComponent):
         """Return the complete dashboard layout with master tab structure."""
         components = [
             # Header
-            self._ap_header(),
+            self._app_header(),
 
             # Master tabs (Search, Data, Paper, About, Help)
             self._create_master_tabs(),

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, List
 import logging
 
+import numpy as np
 from pydantic import BaseModel
 from .. import EmbeddingDB
 from .mixins import DatabaseMixin
@@ -13,6 +14,7 @@ class QueryResultInstance(ABC, BaseModel):
     location_id: str
     location_key: str
     similarity: float
+    distance: float = None
     title: Optional[str] = None
     description: Optional[str] = None
     street_names: Optional[list[str]] = None
@@ -60,7 +62,6 @@ class QueryResultInstance(ABC, BaseModel):
 
         except Exception as e:
             logger.warning(f"Failed to enrich street names for location {self.location_id}: {e}")
-
 class StateResultInstance(QueryResultInstance):
     year: int
     image_path: Optional[Path] = None
@@ -102,6 +103,7 @@ class StateResultInstance(QueryResultInstance):
 class ChangeResultInstance(QueryResultInstance):
     year_from: int
     year_to: int
+    # delta: Optional[np.ndarray] = None
     start_image_path: Optional[Path] = None
     end_image_path: Optional[Path] = None
 

@@ -3,8 +3,8 @@
 from dash import dcc, Input, Output
 from dash.development.base_component import Component as DashComponent
 
-from .base import BaseComponent
-from .map.map_utils import create_location_map
+from ..base import BaseComponent
+from .map_utils import create_location_map
 
 import logging
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class Map(BaseComponent):
                       change_similarity_results, change_description_results,
                       dissimilarity_results):
             """Update map with selected location and results from active tab."""
-            from .. import context as app_ctx
+            from ... import context as app_ctx
 
             # Use results from the active tab
             result_location_ids = []
